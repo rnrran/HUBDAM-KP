@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { Folder, LayoutGrid } from 'lucide-vue-next';
+import { Folder, LayoutGrid, UserPlus, UserCog, DollarSign, BarChart3 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -18,6 +18,29 @@ const mainNavItems: NavItem[] = [
         title: 'Data Master',
         href: '/data-master',
         icon: Folder,
+    },
+];
+
+const adminNavItems: NavItem[] = [
+    {
+        title: 'Buat Akun',
+        href: '/admin/users/create',
+        icon: UserPlus,
+    },
+    {
+        title: 'Edit Akun',
+        href: '/admin/users/edit',
+        icon: UserCog,
+    },
+    {
+        title: 'Input Gaji',
+        href: '/admin/payroll/create',
+        icon: DollarSign,
+    },
+    {
+        title: 'Lihat Gaji',
+        href: '/admin/payroll',
+        icon: BarChart3,
     },
 ];
 
@@ -51,6 +74,7 @@ const footerNavItems: NavItem[] = [
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
+            <NavMain :items="adminNavItems" title="Admin" />
         </SidebarContent>
 
         <SidebarFooter>

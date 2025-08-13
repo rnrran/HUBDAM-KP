@@ -72,10 +72,10 @@ const closeModal = () => {
 
                         <DialogFooter class="gap-2">
                             <DialogClose as-child>
-                                <Button variant="secondary" @click="closeModal"> Batal </Button>
+                                <Button variant="secondary" @click="closeModal">Batal </Button>
                             </DialogClose>
 
-                            <Button type="submit" variant="destructive" :disabled="form.processing"> Hapus Akun </Button>
+                            <Button type="submit" variant="destructive" :disabled="form.processing">Hapus Akun</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
