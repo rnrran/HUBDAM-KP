@@ -10,16 +10,21 @@ import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Halaman Utama',
         href: '/dashboard',
         icon: LayoutGrid,
+    },
+    {
+        title: 'Data Master',
+        href: '/data-master',
+        icon: Folder,
     },
 ];
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Github Repo',
-        href: 'https://github.com/laravel/vue-starter-kit',
+        title: 'Developer Github',
+        href: 'https://github.com/rnrran',
         icon: Folder,
     },
     {
