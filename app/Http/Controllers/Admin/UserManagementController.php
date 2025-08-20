@@ -59,8 +59,7 @@ class UserManagementController extends Controller
             'role' => 'non-admin', // Default role
         ]);
 
-        return redirect()->route('admin.users.create')
-            ->with('success', 'Akun berhasil dibuat untuk ' . $user->name);
+        return redirect()->route('admin.users.create');
     }
 
     /**
@@ -126,8 +125,7 @@ class UserManagementController extends Controller
 
         $user->update($updateData);
 
-        return redirect()->route('admin.users.edit.index')
-            ->with('success', 'Akun ' . $user->name . ' berhasil diperbarui');
+        return redirect()->route('admin.users.edit.index');
     }
 
     /**
@@ -155,30 +153,7 @@ class UserManagementController extends Controller
      */
     private function getPangkatOptions()
     {
-        return [
-            'Prada',
-            'Pratu', 
-            'Praka',
-            'Kopda',
-            'Koptu',
-            'Kopka',
-            'Serda',
-            'Sertu',
-            'Serka',
-            'Serma',
-            'Pelda',
-            'Peltu',
-            'Pelka',
-            'Letda',
-            'Lettu',
-            'Kapten',
-            'Mayor',
-            'Letkol',
-            'Kolonel',
-            'Brigjen',
-            'Mayjen',
-            'Letjen',
-            'Jenderal'
-        ];
+        $pangkatFile = resource_path('js/data/pangkat.json');
+        return json_decode(file_get_contents($pangkatFile), true);
     }
 }

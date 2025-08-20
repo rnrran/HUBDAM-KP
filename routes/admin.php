@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\PayrollController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
@@ -13,4 +14,12 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
     Route::get('/users/{user}', [UserManagementController::class, 'show'])->name('users.show');
     Route::get('/generate-password', [UserManagementController::class, 'generatePassword'])->name('generate.password');
+    
+    // Payroll Management Routes
+    Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
+    Route::get('/payroll/create', [PayrollController::class, 'create'])->name('payroll.create');
+    Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
+    Route::get('/payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
+    Route::get('/payroll/user/{userId}', [PayrollController::class, 'userHistory'])->name('payroll.user');
+    Route::get('/payroll-users', [PayrollController::class, 'getUsers'])->name('payroll.users');
 });

@@ -3,6 +3,8 @@ import { ref, computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
+import NotificationContainer from '@/components/NotificationContainer.vue';
+import { useNotifications } from '@/composables/useNotifications';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,17 +15,23 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/components/ui/select/';
+} from '@/components/ui/select';
 import InputError from '@/components/InputError.vue';
 import { LoaderCircle, Eye, EyeOff, RefreshCw } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
 import axios from 'axios';
+import pangkatData from '@/data/pangkat.json';
 
 interface Props {
-    pangkatOptions: string[];
+    pangkatOptions?: string[];
 }
 
 const props = defineProps<Props>();
+
+const { success, error } = useNotifications();
+
+// Use JSON data for pangkat options
+const pangkatOptions = props.pangkatOptions || pangkatData;
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -94,8 +102,12 @@ const handleConfirm = () => {
     showConfirmModal.value = false;
     form.post(route('admin.users.store'), {
         onSuccess: () => {
+            success('Berhasil!', `Akun untuk ${form.name} berhasil dibuat.`);
             form.reset();
             currentStep.value = 1;
+        },
+        onError: () => {
+            error('Gagal!', 'Terjadi kesalahan saat membuat akun. Silakan coba lagi.');
         },
     });
 };
@@ -293,5 +305,8 @@ const handleCancel = () => {
             @confirm="handleConfirm"
             @cancel="handleCancel"
         />
+        
+        <!-- Notifications -->
+        <NotificationContainer />
     </AppLayout>
 </template>

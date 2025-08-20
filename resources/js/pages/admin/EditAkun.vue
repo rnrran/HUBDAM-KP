@@ -3,6 +3,8 @@ import { ref, computed, watch } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
+import NotificationContainer from '@/components/NotificationContainer.vue';
+import { useNotifications } from '@/composables/useNotifications';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,11 +15,12 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/components/ui/select/';
+} from '@/components/ui/select';
 import InputError from '@/components/InputError.vue';
 import { LoaderCircle, Eye, EyeOff, RefreshCw, User } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
 import axios from 'axios';
+import pangkatData from '@/data/pangkat.json';
 
 interface User {
     id: number;
@@ -30,10 +33,15 @@ interface User {
 interface Props {
     users: User[];
     selectedUser?: User | null;
-    pangkatOptions: string[];
+    pangkatOptions?: string[];
 }
 
 const props = defineProps<Props>();
+
+const { success, error } = useNotifications();
+
+// Use JSON data for pangkat options
+const pangkatOptions = props.pangkatOptions || pangkatData;
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -68,6 +76,8 @@ if (props.selectedUser) {
     form.pangkat = props.selectedUser.pangkat || '';
     form.nomor_registrasi = props.selectedUser.nomor_registrasi || '';
 }
+
+// Users data loaded from controller
 
 const canUpdateAccount = computed(() => {
     return form.name && form.email && selectedUserId.value;
@@ -123,7 +133,10 @@ const handleConfirm = () => {
     showConfirmModal.value = false;
     form.put(route('admin.users.update', selectedUserId.value), {
         onSuccess: () => {
-            // Keep the form filled for further edits
+            success('Berhasil!', `Akun ${selectedUser.value?.name} berhasil diperbarui.`);
+        },
+        onError: () => {
+            error('Gagal!', 'Terjadi kesalahan saat memperbarui akun. Silakan coba lagi.');
         },
     });
 };
@@ -174,6 +187,9 @@ const handleCancel = () => {
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+                        <div v-if="users.length === 0" class="text-sm text-red-500">
+                            No users found. Check if users are being passed from the controller.
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -324,5 +340,8 @@ const handleCancel = () => {
             @confirm="handleConfirm"
             @cancel="handleCancel"
         />
+        
+        <!-- Notifications -->
+        <NotificationContainer />
     </AppLayout>
 </template>

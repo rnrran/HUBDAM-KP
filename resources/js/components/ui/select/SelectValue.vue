@@ -3,11 +3,11 @@ import { SelectValue, type SelectValueProps } from 'reka-ui'
 
 interface Props extends SelectValueProps {}
 
-defineProps<Props>()
+const props = defineProps<Props>()
 </script>
 
 <template>
-  <SelectValue v-bind="$props">
+  <SelectValue v-bind="props">
     <slot />
   </SelectValue>
 </template>

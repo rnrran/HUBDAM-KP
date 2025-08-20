@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { SelectRoot, type SelectRootProps } from 'reka-ui'
+import { SelectRoot, type SelectRootEmits, type SelectRootProps, useForwardPropsEmits } from 'reka-ui'
 
-interface Props extends SelectRootProps {}
+const props = defineProps<SelectRootProps>()
+const emits = defineEmits<SelectRootEmits>()
 
-defineProps<Props>()
+const forwarded = useForwardPropsEmits(props, emits)
 </script>
 
 <template>
-  <SelectRoot v-bind="$props">
+  <SelectRoot
+    data-slot="select"
+    v-bind="forwarded"
+  >
     <slot />
   </SelectRoot>
 </template>
