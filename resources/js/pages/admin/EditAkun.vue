@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import NotificationContainer from '@/components/NotificationContainer.vue';
+import ImageCropper from '@/components/ImageCropper.vue';
 import { useNotifications } from '@/composables/useNotifications';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,8 @@ interface User {
     email: string;
     pangkat?: string;
     nomor_registrasi?: string;
+    role?: string;
+    profile_photo?: string;
 }
 
 interface Props {
@@ -59,6 +62,9 @@ const showPassword = ref(false);
 const showConfirmModal = ref(false);
 const generatingPassword = ref(false);
 const loadingUserData = ref(false);
+const showImageCropper = ref(false);
+const selectedImageFile = ref<File | null>(null);
+const imagePreviewUrl = ref<string>('');
 
 const form = useForm({
     name: '',
@@ -66,6 +72,8 @@ const form = useForm({
     password: '',
     pangkat: '',
     nomor_registrasi: '',
+    role: '',
+    profile_photo: null as File | null,
 });
 
 // Initialize form if selectedUser is provided
@@ -75,6 +83,7 @@ if (props.selectedUser) {
     form.email = props.selectedUser.email;
     form.pangkat = props.selectedUser.pangkat || '';
     form.nomor_registrasi = props.selectedUser.nomor_registrasi || '';
+    form.role = props.selectedUser.role || 'tamu';
 }
 
 // Users data loaded from controller
@@ -87,23 +96,38 @@ const selectedUser = computed(() => {
     return props.users.find(user => user.id.toString() === selectedUserId.value);
 });
 
-// Watch for user selection changes
-watch(selectedUserId, async (newUserId) => {
+// Single watch function for user selection changes
+watch(selectedUserId, async (newUserId, oldUserId) => {
     if (!newUserId) {
-        form.reset();
+        // Reset form when clearing selection
+        if (oldUserId) {
+            // Use a more controlled reset to avoid triggering watch again
+            form.name = '';
+            form.email = '';
+            form.pangkat = '';
+            form.nomor_registrasi = '';
+            form.role = '';
+            form.password = '';
+            form.profile_photo = null;
+        }
         return;
     }
-
+    
+    // Always load data for new user selection
     loadingUserData.value = true;
     try {
         const response = await axios.get(route('admin.users.show', newUserId));
         const userData = response.data;
         
+        // Update form with new user data
         form.name = userData.name;
         form.email = userData.email;
         form.pangkat = userData.pangkat || '';
         form.nomor_registrasi = userData.nomor_registrasi || '';
+        form.role = userData.role || 'tamu';
         form.password = ''; // Always reset password field
+        form.profile_photo = null; // Reset profile photo
+        imagePreviewUrl.value = ''; // Reset image preview
     } catch (error) {
         console.error('Error loading user data:', error);
     } finally {
@@ -131,9 +155,11 @@ const handleConfirm = () => {
     if (!selectedUserId.value) return;
     
     showConfirmModal.value = false;
-    form.put(route('admin.users.update', selectedUserId.value), {
+    form.post(route('admin.users.update', selectedUserId.value), {
         onSuccess: () => {
             success('Berhasil!', `Akun ${selectedUser.value?.name} berhasil diperbarui.`);
+            // Reset only the profile photo field to avoid triggering watch
+            form.profile_photo = null;
         },
         onError: () => {
             error('Gagal!', 'Terjadi kesalahan saat memperbarui akun. Silakan coba lagi.');
@@ -143,6 +169,38 @@ const handleConfirm = () => {
 
 const handleCancel = () => {
     showConfirmModal.value = false;
+};
+
+const handleFileChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+        selectedImageFile.value = target.files[0];
+        showImageCropper.value = true;
+    }
+};
+
+const handleCroppedImage = (croppedFile: File) => {
+    form.profile_photo = croppedFile;
+    
+    // Create preview URL for immediate display
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        imagePreviewUrl.value = e.target?.result as string;
+    };
+    reader.readAsDataURL(croppedFile);
+    
+    // Reset file input
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+        fileInput.value = '';
+    }
+};
+
+const getProfilePhotoUrl = (user: User) => {
+    if (user.profile_photo) {
+        return `/storage/${user.profile_photo}`;
+    }
+    return '/resources/js/assets/default_icons/pfp.png';
 };
 </script>
 
@@ -160,7 +218,7 @@ const handleCancel = () => {
             </div>
 
             <!-- User Selection -->
-            <Card class="w-full max-w-4xl">
+            <Card class="w-full max-w">
                 <CardHeader>
                     <CardTitle class="flex items-center space-x-2">
                         <User class="h-5 w-5" />
@@ -175,7 +233,7 @@ const handleCancel = () => {
                         <Label for="user-select">Pilih Pengguna</Label>
                         <Select v-model="selectedUserId">
                             <SelectTrigger>
-                                <SelectValue placeholder="Pilih pengguna untuk diedit" />
+                                <SelectValue :placeholder="selectedUser ? `${selectedUser.name} - ${selectedUser.email}` : 'Pilih pengguna untuk diedit'" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem 
@@ -195,7 +253,7 @@ const handleCancel = () => {
             </Card>
 
             <!-- Edit Form -->
-            <Card v-if="selectedUserId" class="w-full max-w-4xl">
+            <Card v-if="selectedUserId" class="w-full">
                 <CardHeader>
                     <CardTitle>Edit Informasi Pengguna</CardTitle>
                     <CardDescription>
@@ -274,7 +332,7 @@ const handleCancel = () => {
                             <Label for="pangkat">Pangkat</Label>
                             <Select v-model="form.pangkat">
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Pilih pangkat" />
+                                    <SelectValue :placeholder="form.pangkat || 'Pilih pangkat'" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="">
@@ -302,6 +360,64 @@ const handleCancel = () => {
                             <InputError :message="form.errors.nomor_registrasi" />
                         </div>
 
+                        <!-- Profile Photo Upload -->
+                        <div class="grid gap-2">
+                            <Label>Foto Profile</Label>
+                            <div class="flex items-center space-x-4">
+                                <div class="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
+                                    <img 
+                                        v-if="imagePreviewUrl" 
+                                        :src="imagePreviewUrl" 
+                                        alt="Profile Photo Preview" 
+                                        class="w-full h-full object-cover"
+                                    />
+                                    <img 
+                                        v-else-if="selectedUser && selectedUser.profile_photo" 
+                                        :src="getProfilePhotoUrl(selectedUser)" 
+                                        alt="Profile Photo" 
+                                        class="w-full h-full object-cover"
+                                    />
+                                    <div v-else class="w-full h-full bg-gray-100 flex items-center justify-center">
+                                        <img 
+                                            src="/resources/js/assets/default_icons/pfp.png" 
+                                            alt="Default Profile" 
+                                            class="w-12 h-12 opacity-50"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="flex flex-col space-y-2">
+                                    <Input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        @change="handleFileChange"
+                                        class="max-w-xs"
+                                    />
+                                    <p class="text-sm text-muted-foreground">
+                                        Format: JPG, PNG, GIF. Maksimal 2MB.
+                                    </p>
+                                    <p v-if="form.profile_photo" class="text-sm text-green-600">
+                                        ✓ File dipilih: {{ form.profile_photo.name }}
+                                    </p>
+                                </div>
+                            </div>
+                            <InputError :message="form.errors.profile_photo" />
+                        </div>
+
+                        <div class="grid gap-2">
+                            <Label for="role">Role</Label>
+                            <Select v-model="form.role">
+                                <SelectTrigger>
+                                    <SelectValue :placeholder="form.role || 'Pilih role'" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="tamu">Tamu</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                    <SelectItem value="non-admin">Non-Admin</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError :message="form.errors.role" />
+                        </div>
+
                         <div class="flex justify-end">
                             <Button 
                                 @click="showConfirmation"
@@ -316,7 +432,7 @@ const handleCancel = () => {
             </Card>
 
             <!-- Empty State -->
-            <Card v-if="!selectedUserId" class="w-full max-w-4xl">
+            <Card v-if="!selectedUserId" class="w-full max-w">
                 <CardContent class="flex flex-col items-center justify-center py-12">
                     <User class="h-12 w-12 text-muted-foreground mb-4" />
                     <p class="text-lg font-medium text-muted-foreground mb-2">
@@ -343,5 +459,12 @@ const handleCancel = () => {
         
         <!-- Notifications -->
         <NotificationContainer />
+
+        <!-- Image Cropper Modal -->
+        <ImageCropper
+            v-model="showImageCropper"
+            :image-file="selectedImageFile"
+            @cropped="handleCroppedImage"
+        />
     </AppLayout>
 </template>

@@ -25,6 +25,7 @@ class User extends Authenticatable
         'pangkat',
         'nomor_registrasi',
         'role',
+        'profile_photo',
     ];
 
     /**

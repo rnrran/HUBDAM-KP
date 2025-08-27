@@ -11,7 +11,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('/users', [UserManagementController::class, 'store'])->name('users.store');
     Route::get('/users/edit', [UserManagementController::class, 'editIndex'])->name('users.edit.index');
     Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('users.edit');
-    Route::put('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+    Route::post('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
     Route::get('/users/{user}', [UserManagementController::class, 'show'])->name('users.show');
     Route::get('/generate-password', [UserManagementController::class, 'generatePassword'])->name('generate.password');
     

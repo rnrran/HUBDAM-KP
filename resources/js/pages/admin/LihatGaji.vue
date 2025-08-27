@@ -79,7 +79,7 @@ const filteredPayrolls = computed(() => {
 
 const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
+        // style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0,
     }).format(value);
@@ -299,19 +299,19 @@ const getBarColor = (type: 'gaji' | 'potongan' | 'net'): string => {
                         <table v-else class="w-full table-auto">
                             <thead>
                                 <tr class="border-b">
-                                    <th class="text-left p-4 font-medium">Personil</th>
-                                    <th class="text-left p-4 font-medium">Pangkat</th>
-                                    <th class="text-right p-4 font-medium">Gaji Bersih</th>
-                                    <th class="text-right p-4 font-medium">Total Potongan</th>
-                                    <th class="text-right p-4 font-medium">Gaji Bersih Setelah Potongan</th>
-                                    <th class="text-left p-4 font-medium">Tanggal Dibayar</th>
+                                    <th class="text-center p-4 font-medium">Personil</th>
+                                    <th class="text-center p-4 font-medium">Pangkat</th>
+                                    <th class="text-center p-4 font-medium">Gaji Bersih (Rp)</th>
+                                    <th class="text-center p-4 font-medium">Total Potongan (Rp)</th>
+                                    <th class="text-center p-4 font-medium">Gaji Bersih Setelah Potongan (Rp)</th>
+                                    <th class="text-center p-4 font-medium">Tanggal Dibayar</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="payroll in filteredPayrolls" :key="payroll.id" class="border-b hover:bg-muted/50">
+                                <tr v-for="payroll in filteredPayrolls" :key="payroll.id" class="border-b hover:bg-muted/50 text-left">
                                     <td class="p-4">
                                         <div>
-                                            <div class="font-medium">{{ payroll.user.name }}</div>
+                                            <div class="font-medium ">{{ payroll.user.name }}</div>
                                             <div class="text-sm text-muted-foreground">{{ payroll.user.email }}</div>
                                         </div>
                                     </td>
@@ -324,12 +324,12 @@ const getBarColor = (type: 'gaji' | 'potongan' | 'net'): string => {
                                         </span>
                                     </td>
                                     <td class="p-4 text-right">
-                                        <span class="font-medium text-red-600">
+                                        <span class="font-medium  text-red-600">
                                             {{ formatCurrency(payroll.total_deductions) }}
                                         </span>
                                     </td>
                                     <td class="p-4 text-right">
-                                        <span class="font-bold text-blue-600">
+                                        <span class="font-bold text-black">
                                             {{ formatCurrency(payroll.net_salary) }}
                                         </span>
                                     </td>

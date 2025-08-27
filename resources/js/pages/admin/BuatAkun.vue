@@ -4,6 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import NotificationContainer from '@/components/NotificationContainer.vue';
+import ImageCropper from '@/components/ImageCropper.vue';
 import { useNotifications } from '@/composables/useNotifications';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +49,9 @@ const currentStep = ref(1);
 const showPassword = ref(false);
 const showConfirmModal = ref(false);
 const generatingPassword = ref(false);
+const showImageCropper = ref(false);
+const selectedImageFile = ref<File | null>(null);
+const imagePreviewUrl = ref<string>('');
 
 const form = useForm({
     name: '',
@@ -55,6 +59,8 @@ const form = useForm({
     password: '',
     pangkat: '',
     nomor_registrasi: '',
+    role: 'tamu',
+    profile_photo: null as File | null,
 });
 
 const canProceedToStep2 = computed(() => {
@@ -115,6 +121,38 @@ const handleConfirm = () => {
 const handleCancel = () => {
     showConfirmModal.value = false;
 };
+
+const handleFileChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+        selectedImageFile.value = target.files[0];
+        showImageCropper.value = true;
+    }
+};
+
+const handleCroppedImage = (croppedFile: File) => {
+    form.profile_photo = croppedFile;
+    
+    // Create preview URL for immediate display
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        imagePreviewUrl.value = e.target?.result as string;
+    };
+    reader.readAsDataURL(croppedFile);
+    
+    // Reset file input
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+        fileInput.value = '';
+    }
+};
+
+const getProfilePhotoPreview = () => {
+    if (form.profile_photo) {
+        return window.URL.createObjectURL(form.profile_photo);
+    }
+    return null;
+};
 </script>
 
 <template>
@@ -160,7 +198,7 @@ const handleCancel = () => {
             </div>
 
             <!-- Step 1: Basic Information -->
-            <Card v-if="currentStep === 1" class="w-full max-w-4xl">
+            <Card v-if="currentStep === 1" class="w-full max-w">
                 <CardHeader>
                     <CardTitle>Informasi Dasar</CardTitle>
                     <CardDescription>
@@ -242,7 +280,7 @@ const handleCancel = () => {
             </Card>
 
             <!-- Step 2: Additional Information -->
-            <Card v-if="currentStep === 2" class="w-full max-w-4xl">
+            <Card v-if="currentStep === 2" class="w-full max-w">
                 <CardHeader>
                     <CardTitle>Informasi Tambahan</CardTitle>
                     <CardDescription>
@@ -252,9 +290,9 @@ const handleCancel = () => {
                 <CardContent class="space-y-6">
                     <div class="grid gap-2">
                         <Label for="pangkat">Pangkat</Label>
-                        <Select v-model="form.pangkat">
+                        <Select v-model="form.pangkat" :value="form.pangkat">
                             <SelectTrigger>
-                                <SelectValue placeholder="Pilih pangkat" />
+                                <SelectValue :placeholder="form.pangkat || 'Pilih pangkat'" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem 
@@ -277,6 +315,54 @@ const handleCancel = () => {
                             placeholder="Masukkan nomor registrasi"
                         />
                         <InputError :message="form.errors.nomor_registrasi" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="role">Role *</Label>
+                        <Select v-model="form.role" :value="form.role">
+                            <SelectTrigger>
+                                <SelectValue :placeholder="form.role || 'Pilih role'" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="tamu">Tamu</SelectItem>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="non-admin">Non-Admin</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <InputError :message="form.errors.role" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label>Foto Profile</Label>
+                        <div class="flex items-center space-x-4">
+                            <div class="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100 flex items-center justify-center">
+                                <div v-if="imagePreviewUrl" class="w-full h-full">
+                                    <img 
+                                        :src="imagePreviewUrl" 
+                                        alt="Profile Photo Preview" 
+                                        class="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <div v-else-if="form.profile_photo" class="text-green-600 text-xs text-center">
+                                    ✓ Image Selected
+                                </div>
+                                <div v-else class="text-gray-400 text-xs text-center">
+                                    No Image
+                                </div>
+                            </div>
+                            <div class="flex flex-col space-y-2">
+                                <Input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    @change="handleFileChange"
+                                    class="max-w-xs"
+                                />
+                                <p class="text-sm text-muted-foreground">
+                                    Format: JPG, PNG, GIF. Maksimal 2MB.
+                                </p>
+                            </div>
+                        </div>
+                        <InputError :message="form.errors.profile_photo" />
                     </div>
 
                     <div class="flex justify-between">
@@ -308,5 +394,12 @@ const handleCancel = () => {
         
         <!-- Notifications -->
         <NotificationContainer />
+        
+        <!-- Image Cropper Modal -->
+        <ImageCropper
+            v-model="showImageCropper"
+            :image-file="selectedImageFile"
+            @cropped="handleCroppedImage"
+        />
     </AppLayout>
 </template>

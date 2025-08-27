@@ -17,7 +17,7 @@ class UserManagementController extends Controller
      */
     public function index()
     {
-        $users = User::select('id', 'name', 'email', 'pangkat', 'nomor_registrasi')
+        $users = User::select('id', 'name', 'email', 'pangkat', 'nomor_registrasi', 'role', 'profile_photo')
             ->orderBy('name')
             ->get();
 
@@ -48,16 +48,26 @@ class UserManagementController extends Controller
             'password' => ['required', 'string', 'min:8'],
             'pangkat' => 'nullable|string|max:255',
             'nomor_registrasi' => 'nullable|string|max:255',
+            'role' => 'required|string|in:tamu,admin,non-admin',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $user = User::create([
+        $userData = [
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'pangkat' => $request->pangkat,
             'nomor_registrasi' => $request->nomor_registrasi,
-            'role' => 'non-admin', // Default role
-        ]);
+            'role' => $request->role ?? 'tamu',
+        ];
+
+        // Handle profile photo upload
+        if ($request->hasFile('profile_photo')) {
+            $photoPath = $request->file('profile_photo')->store('profile-photos', 'public');
+            $userData['profile_photo'] = $photoPath;
+        }
+
+        $user = User::create($userData);
 
         return redirect()->route('admin.users.create');
     }
@@ -67,7 +77,7 @@ class UserManagementController extends Controller
      */
     public function edit(User $user)
     {
-        $users = User::select('id', 'name', 'email')
+        $users = User::select('id', 'name', 'email', 'pangkat', 'nomor_registrasi', 'role', 'profile_photo')
             ->orderBy('name')
             ->get();
 
@@ -85,7 +95,7 @@ class UserManagementController extends Controller
      */
     public function editIndex()
     {
-        $users = User::select('id', 'name', 'email')
+        $users = User::select('id', 'name', 'email', 'pangkat', 'nomor_registrasi', 'role', 'profile_photo')
             ->orderBy('name')
             ->get();
 
@@ -109,6 +119,8 @@ class UserManagementController extends Controller
             'password' => ['nullable', 'string', 'min:8'],
             'pangkat' => 'nullable|string|max:255',
             'nomor_registrasi' => 'nullable|string|max:255',
+            'role' => 'required|string|in:tamu,admin,non-admin',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $updateData = [
@@ -116,7 +128,23 @@ class UserManagementController extends Controller
             'email' => $request->email,
             'pangkat' => $request->pangkat,
             'nomor_registrasi' => $request->nomor_registrasi,
+            'role' => $request->role,
         ];
+
+        // Handle profile photo upload
+        if ($request->hasFile('profile_photo')) {
+            // Delete old profile photo if exists
+            if ($user->profile_photo) {
+                $oldPhotoPath = storage_path('app/public/' . $user->profile_photo);
+                if (file_exists($oldPhotoPath)) {
+                    unlink($oldPhotoPath);
+                }
+            }
+            
+            // Store new profile photo
+            $photoPath = $request->file('profile_photo')->store('profile-photos', 'public');
+            $updateData['profile_photo'] = $photoPath;
+        }
 
         // Only update password if provided
         if ($request->filled('password')) {

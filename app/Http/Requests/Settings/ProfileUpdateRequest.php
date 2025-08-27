@@ -25,6 +25,10 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'pangkat' => ['nullable', 'string', 'max:255'],
+            'nomor_registrasi' => ['nullable', 'string', 'max:255'],
+            'role' => ['required', 'string', 'in:tamu,admin,non-admin'],
+            'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];
     }
 }

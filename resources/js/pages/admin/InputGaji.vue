@@ -155,7 +155,7 @@ const handleCancel = () => {
             </div>
 
             <!-- User Selection -->
-            <Card class="w-full max-w-4xl">
+            <Card class="w-full max-w">
                 <CardHeader>
                     <CardTitle class="flex items-center space-x-2">
                         <User class="h-5 w-5" />
@@ -193,7 +193,7 @@ const handleCancel = () => {
             <!-- Salary Input Form -->
             <div v-if="form.user_id" class="space-y-6">
                 <!-- Basic Salary Info -->
-                <Card class="w-full max-w-4xl">
+                <Card class="w-full max-w">
                     <CardHeader>
                         <CardTitle class="flex items-center space-x-2">
                             <DollarSign class="h-5 w-5" />
@@ -235,7 +235,7 @@ const handleCancel = () => {
                 </Card>
 
                 <!-- Deductions -->
-                <Card class="w-full max-w-4xl">
+                <Card class="w-full max-w">
                     <CardHeader>
                         <CardTitle>Potongan Gaji</CardTitle>
                         <CardDescription>
@@ -442,7 +442,7 @@ const handleCancel = () => {
                 </Card>
 
                 <!-- Summary -->
-                <Card class="w-full max-w-4xl">
+                <Card class="w-full max-w">
                     <CardHeader>
                         <CardTitle>Ringkasan Gaji</CardTitle>
                         <CardDescription>
@@ -485,7 +485,7 @@ const handleCancel = () => {
             </div>
 
             <!-- Empty State -->
-            <Card v-if="!form.user_id" class="w-full max-w-4xl">
+            <Card v-if="!form.user_id" class="w-full max-w">
                 <CardContent class="flex flex-col items-center justify-center py-12">
                     <DollarSign class="h-12 w-12 text-muted-foreground mb-4" />
                     <p class="text-lg font-medium text-muted-foreground mb-2">
