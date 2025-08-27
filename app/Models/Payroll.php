@@ -13,6 +13,8 @@ class Payroll extends Model
     protected $fillable = [
         'user_id',
         'gaji_bersih',
+        'total_deductions',
+        'net_salary',
         'tanggal_dibayarkan',
         'mdr_bws_bri',
         'btn',
@@ -43,6 +45,8 @@ class Payroll extends Model
 
     protected $casts = [
         'gaji_bersih' => 'decimal:2',
+        'total_deductions' => 'decimal:2',
+        'net_salary' => 'decimal:2',
         'tanggal_dibayarkan' => 'date',
         'mdr_bws_bri' => 'decimal:2',
         'btn' => 'decimal:2',

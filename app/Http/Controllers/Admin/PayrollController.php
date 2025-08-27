@@ -16,17 +16,29 @@ class PayrollController extends Controller
      */
     public function index()
     {
-        $payrolls = Payroll::with('user:id,name,email,pangkat')
+        $payrolls = Payroll::with('user')
+            ->select([
+                'id', 'user_id', 'gaji_bersih', 'tanggal_dibayarkan',
+                'mdr_bws_bri', 'btn', 'twp', 'persit', 'ikka_persit',
+                'koperasi', 'barak', 'kowad', 'titipan', 'tenes',
+                'remaja', 'galon', 'sosial', 'pns', 'bel_wajib_kop',
+                'custom_1_name', 'custom_1_value', 'custom_2_name', 'custom_2_value',
+                'custom_3_name', 'custom_3_value', 'custom_4_name', 'custom_4_value',
+                'custom_5_name', 'custom_5_value', 'total_deductions', 'net_salary',
+                'created_at', 'updated_at'
+            ])
             ->orderBy('tanggal_dibayarkan', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->paginate(10);
 
-        // Generate dummy chart data for now
-        $chartData = $this->generateDummyChartData();
-
+        $users = User::select('id', 'name', 'email', 'pangkat')->get();
+        
+        // Generate chart data based on all payrolls
+        $chartData = $this->generateChartDataFromPayrolls();
+        
         return Inertia::render('admin/LihatGaji', [
             'payrolls' => $payrolls,
-            'chartData' => $chartData,
+            'users' => $users,
+            'chartData' => $chartData
         ]);
     }
 
@@ -80,7 +92,28 @@ class PayrollController extends Controller
             'custom_5_value' => 'nullable|numeric|min:0',
         ]);
 
-        $payroll = Payroll::create($request->all());
+        // Calculate total deductions
+        $totalDeductions = 0;
+        $deductionFields = [
+            'mdr_bws_bri', 'btn', 'twp', 'persit', 'ikka_persit', 'koperasi',
+            'barak', 'kowad', 'titipan', 'tenes', 'remaja', 'galon', 'sosial',
+            'pns', 'bel_wajib_kop', 'custom_1_value', 'custom_2_value',
+            'custom_3_value', 'custom_4_value', 'custom_5_value'
+        ];
+
+        foreach ($deductionFields as $field) {
+            $totalDeductions += $request->input($field, 0) ?? 0;
+        }
+
+        // Calculate net salary
+        $netSalary = $request->gaji_bersih - $totalDeductions;
+
+        // Prepare data with calculated fields
+        $payrollData = $request->all();
+        $payrollData['total_deductions'] = $totalDeductions;
+        $payrollData['net_salary'] = $netSalary;
+
+        $payroll = Payroll::create($payrollData);
 
         return redirect()->route('admin.payroll.create');
     }
@@ -91,6 +124,17 @@ class PayrollController extends Controller
     public function show(Payroll $payroll)
     {
         $payroll->load('user:id,name,email,pangkat');
+        
+        // Ensure all fields are loaded
+        $payroll = Payroll::select([
+            'id', 'user_id', 'gaji_bersih', 'total_deductions', 'net_salary',
+            'tanggal_dibayarkan', 'mdr_bws_bri', 'btn', 'twp', 'persit',
+            'ikka_persit', 'koperasi', 'barak', 'kowad', 'titipan', 'tenes',
+            'remaja', 'galon', 'sosial', 'pns', 'bel_wajib_kop',
+            'custom_1_name', 'custom_1_value', 'custom_2_name', 'custom_2_value',
+            'custom_3_name', 'custom_3_value', 'custom_4_name', 'custom_4_value',
+            'custom_5_name', 'custom_5_value', 'created_at'
+        ])->with('user:id,name,email,pangkat')->find($payroll->id);
         
         return response()->json($payroll);
     }
@@ -103,6 +147,15 @@ class PayrollController extends Controller
         $user = User::findOrFail($userId);
         
         $payrolls = Payroll::where('user_id', $userId)
+            ->select([
+                'id', 'user_id', 'gaji_bersih', 'total_deductions', 'net_salary',
+                'tanggal_dibayarkan', 'mdr_bws_bri', 'btn', 'twp', 'persit',
+                'ikka_persit', 'koperasi', 'barak', 'kowad', 'titipan', 'tenes',
+                'remaja', 'galon', 'sosial', 'pns', 'bel_wajib_kop',
+                'custom_1_name', 'custom_1_value', 'custom_2_name', 'custom_2_value',
+                'custom_3_name', 'custom_3_value', 'custom_4_name', 'custom_4_value',
+                'custom_5_name', 'custom_5_value', 'created_at'
+            ])
             ->orderBy('tanggal_dibayarkan', 'desc')
             ->get();
 
@@ -121,15 +174,43 @@ class PayrollController extends Controller
      */
     private function generateDummyChartData()
     {
-        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-        $data = [];
+        // Try to get actual payroll data first
+        $recentPayrolls = Payroll::select([
+            'gaji_bersih', 'total_deductions', 'net_salary', 'tanggal_dibayarkan'
+        ])
+        ->orderBy('tanggal_dibayarkan', 'desc')
+        ->take(12)
+        ->get();
 
-        foreach ($months as $month) {
+        if ($recentPayrolls->count() > 0) {
+            $data = [];
+            foreach ($recentPayrolls as $payroll) {
+                $data[] = [
+                    'month' => $payroll->tanggal_dibayarkan->format('M Y'),
+                    'gaji_bersih' => $payroll->gaji_bersih,
+                    'total_potongan' => $payroll->total_deductions,
+                    'gaji_bersih_setelah_potongan' => $payroll->net_salary,
+                ];
+            }
+            return array_reverse($data);
+        }
+
+        // Fallback to dummy data if no real data exists
+        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        $data = [];
+        $currentYear = date('Y');
+
+        foreach ($months as $index => $month) {
+            $monthNumber = $index + 1;
+            $gajiBersih = rand(5000000, 8000000);
+            $totalPotongan = rand(500000, 1500000);
+            $netSalary = $gajiBersih - $totalPotongan;
+            
             $data[] = [
-                'month' => $month,
-                'gaji_bersih' => rand(5000000, 8000000),
-                'total_potongan' => rand(500000, 1500000),
-                'gaji_bersih_setelah_potongan' => rand(4000000, 7000000),
+                'month' => $month . ' ' . $currentYear,
+                'gaji_bersih' => $gajiBersih,
+                'total_potongan' => $totalPotongan,
+                'gaji_bersih_setelah_potongan' => $netSalary,
             ];
         }
 
@@ -143,7 +224,7 @@ class PayrollController extends Controller
     {
         $data = [];
 
-        foreach ($payrolls->take(12) as $payroll) {
+        foreach ($payrolls->take(24) as $payroll) {
             $data[] = [
                 'month' => $payroll->tanggal_dibayarkan->format('M Y'),
                 'gaji_bersih' => $payroll->gaji_bersih,
@@ -156,6 +237,58 @@ class PayrollController extends Controller
     }
 
     /**
+     * Generate chart data for specific user and time range
+     */
+    public function getUserChartData($userId, $timeRange = '12')
+    {
+        $query = Payroll::where('user_id', $userId);
+        
+        // Apply time range filter
+        switch ($timeRange) {
+            case '4': // 4 weeks
+                $query->where('tanggal_dibayarkan', '>=', now()->subWeeks(4));
+                break;
+            case '8': // 8 weeks
+                $query->where('tanggal_dibayarkan', '>=', now()->subWeeks(8));
+                break;
+            case '12': // 12 weeks
+                $query->where('tanggal_dibayarkan', '>=', now()->subWeeks(12));
+                break;
+            case '6': // 6 months
+                $query->where('tanggal_dibayarkan', '>=', now()->subMonths(6));
+                break;
+            case '12': // 12 months
+                $query->where('tanggal_dibayarkan', '>=', now()->subMonths(12));
+                break;
+            case '24': // 24 months
+                $query->where('tanggal_dibayarkan', '>=', now()->subMonths(24));
+                break;
+            case 'all':
+            default:
+                // No time filter
+                break;
+        }
+        
+        $payrolls = $query->select([
+            'gaji_bersih', 'total_deductions', 'net_salary', 'tanggal_dibayarkan'
+        ])
+        ->orderBy('tanggal_dibayarkan', 'asc')
+        ->get();
+
+        $data = [];
+        foreach ($payrolls as $payroll) {
+            $data[] = [
+                'month' => $payroll->tanggal_dibayarkan->format('M Y'),
+                'gaji_bersih' => $payroll->gaji_bersih,
+                'total_potongan' => $payroll->total_deductions,
+                'gaji_bersih_setelah_potongan' => $payroll->net_salary,
+            ];
+        }
+
+        return response()->json($data);
+    }
+
+    /**
      * Get users for dropdown
      */
     public function getUsers()
@@ -165,5 +298,33 @@ class PayrollController extends Controller
             ->get();
 
         return response()->json($users);
+    }
+
+    /**
+     * Generate chart data from actual payroll records
+     */
+    private function generateChartDataFromPayrolls()
+    {
+        $payrolls = Payroll::select([
+            'gaji_bersih', 'total_deductions', 'net_salary', 'tanggal_dibayarkan'
+        ])
+        ->orderBy('tanggal_dibayarkan', 'asc')
+        ->get();
+
+        if ($payrolls->count() === 0) {
+            return $this->generateDummyChartData();
+        }
+
+        $data = [];
+        foreach ($payrolls->take(24) as $payroll) {
+            $data[] = [
+                'month' => $payroll->tanggal_dibayarkan->format('M Y'),
+                'gaji_bersih' => $payroll->gaji_bersih,
+                'total_potongan' => $payroll->total_deductions,
+                'gaji_bersih_setelah_potongan' => $payroll->net_salary,
+            ];
+        }
+
+        return $data;
     }
 }

@@ -17,8 +17,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import InputError from '@/components/InputError.vue';
-import { LoaderCircle, DollarSign, Calendar, User } from 'lucide-vue-next';
+import { LoaderCircle, DollarSign, Calendar, User, Printer } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
+import PayrollSlipPrinter from '@/components/PayrollSlipPrinter.vue';
 
 interface User {
     id: number;
@@ -47,6 +48,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const showConfirmModal = ref(false);
+const payrollSlipPrinterRef = ref<InstanceType<typeof PayrollSlipPrinter>>();
 
 const form = useForm({
     user_id: '',
@@ -86,7 +88,11 @@ const selectedUser = computed(() => {
 });
 
 const canSubmit = computed(() => {
-    return form.user_id && form.gaji_bersih;
+    return form.user_id && form.gaji_bersih && !form.processing;
+});
+
+const isUserSelected = computed(() => {
+    return !!form.user_id;
 });
 
 // Calculate total deductions
@@ -127,8 +133,12 @@ const handleConfirm = () => {
     form.post(route('admin.payroll.store'), {
         onSuccess: () => {
             success('Berhasil!', `Data gaji untuk ${selectedUser.value?.name} berhasil disimpan.`);
+            // Reset form completely
             form.reset();
+            // Reset date to today
             form.tanggal_dibayarkan = new Date().toISOString().split('T')[0];
+            // Reset user selection
+            form.user_id = '';
         },
         onError: () => {
             error('Gagal!', 'Terjadi kesalahan saat menyimpan data gaji. Silakan coba lagi.');
@@ -138,6 +148,43 @@ const handleConfirm = () => {
 
 const handleCancel = () => {
     showConfirmModal.value = false;
+};
+
+const printPayrollSlip = () => {
+    if (!selectedUser.value || !form.gaji_bersih) return;
+    
+    const payrollData = {
+        user: selectedUser.value,
+        gaji_bersih: parseFloat(form.gaji_bersih) || 0,
+        tanggal_dibayarkan: form.tanggal_dibayarkan,
+        total_deductions: totalDeductions.value,
+        net_salary: netSalary.value,
+        deductions: {
+            mdr_bws_bri: parseFloat(form.mdr_bws_bri) || 0,
+            btn: parseFloat(form.btn) || 0,
+            twp: parseFloat(form.twp) || 0,
+            persit: parseFloat(form.persit) || 0,
+            ikka_persit: parseFloat(form.ikka_persit) || 0,
+            koperasi: parseFloat(form.koperasi) || 0,
+            barak: parseFloat(form.barak) || 0,
+            kowad: parseFloat(form.kowad) || 0,
+            titipan: parseFloat(form.titipan) || 0,
+            tenes: parseFloat(form.tenes) || 0,
+            remaja: parseFloat(form.remaja) || 0,
+            galon: parseFloat(form.galon) || 0,
+            sosial: parseFloat(form.sosial) || 0,
+            pns: parseFloat(form.pns) || 0,
+            bel_wajib_kop: parseFloat(form.bel_wajib_kop) || 0,
+            custom_1: { name: form.custom_1_name, value: parseFloat(form.custom_1_value) || 0 },
+            custom_2: { name: form.custom_2_name, value: parseFloat(form.custom_2_value) || 0 },
+            custom_3: { name: form.custom_3_name, value: parseFloat(form.custom_3_value) || 0 },
+            custom_4: { name: form.custom_4_name, value: parseFloat(form.custom_4_value) || 0 },
+            custom_5: { name: form.custom_5_name, value: parseFloat(form.custom_5_value) || 0 },
+        }
+    };
+    
+    // Call the print function from the component with the actual data
+    payrollSlipPrinterRef.value?.printPayrollSlip(payrollData);
 };
 </script>
 
@@ -157,41 +204,57 @@ const handleCancel = () => {
             <!-- User Selection -->
             <Card class="w-full max-w">
                 <CardHeader>
-                    <CardTitle class="flex items-center space-x-2">
-                        <User class="h-5 w-5" />
-                        <span>Pilih Personil</span>
-                    </CardTitle>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <User class="h-5 w-5" />
+                            <span>Pilih Personil</span>
+                        </div>
+                        <Button 
+                            v-if="isUserSelected && form.gaji_bersih"
+                            @click="printPayrollSlip"
+                            variant="default"
+                            size="sm"
+                            class="ml-4 bg-green-600 hover:bg-green-700 text-white"
+                        >
+                            <Printer class="h-4 w-4 mr-2" />
+                            Cetak Struk
+                        </Button>
+                    </div>
                     <CardDescription>
                         Pilih personil yang akan diinput data gajinya.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div class="grid gap-2">
-                        <Label for="user-select">Pilih Personil</Label>
-                        <Select v-model="form.user_id">
+                        <Label for="user_id">Personil *</Label>
+                        <Select v-model="form.user_id" required>
                             <SelectTrigger>
-                                <SelectValue placeholder="Pilih personil untuk input gaji" />
+                                <SelectValue :placeholder="selectedUser ? selectedUser.name : 'Pilih personil...'" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem 
-                                    v-for="user in users" 
+                                    v-for="user in props.users" 
                                     :key="user.id" 
                                     :value="user.id.toString()"
                                 >
-                                    {{ user.name }} - {{ user.pangkat || 'Tidak ada pangkat' }}
+                                    <div class="flex flex-col">
+                                        <span class="font-medium">{{ user.name }}</span>
+                                        <span class="text-sm text-muted-foreground">{{ user.email }}</span>
+                                        <span v-if="user.pangkat" class="text-xs text-muted-foreground">{{ user.pangkat }}</span>
+                                    </div>
                                 </SelectItem>
                             </SelectContent>
                         </Select>
                         <InputError :message="form.errors.user_id" />
-                        <div v-if="users.length === 0" class="text-sm text-red-500">
-                            No users found. Check if users are being passed from the controller.
-                        </div>
+                        <p class="text-xs text-muted-foreground mt-2">
+                            Setelah memilih personil dan mengisi data gaji, Anda dapat mencetak struk gaji menggunakan tombol "Cetak Struk".
+                        </p>
                     </div>
                 </CardContent>
             </Card>
 
             <!-- Salary Input Form -->
-            <div v-if="form.user_id" class="space-y-6">
+            <div v-if="isUserSelected" class="space-y-6">
                 <!-- Basic Salary Info -->
                 <Card class="w-full max-w">
                     <CardHeader>
@@ -243,7 +306,7 @@ const handleCancel = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent class="space-y-6">
-                        <div class="grid md:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <!-- Fixed deduction fields -->
                             <div class="grid gap-2">
                                 <Label for="mdr_bws_bri">MDR/BWS/BRI</Label>
@@ -415,7 +478,7 @@ const handleCancel = () => {
                         <div class="mt-8">
                             <h4 class="text-lg font-medium mb-4">Potongan Tambahan (Opsional)</h4>
                             <div class="space-y-4">
-                                <div v-for="i in 5" :key="i" class="grid md:grid-cols-2 gap-4">
+                                <div v-for="i in 5" :key="i" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div class="grid gap-2">
                                         <Label :for="`custom_${i}_name`">Nama Potongan {{ i }}</Label>
                                         <Input 
@@ -423,7 +486,7 @@ const handleCancel = () => {
                                             v-model="form[`custom_${i}_name` as keyof typeof form.data]" 
                                             :placeholder="`Nama potongan tambahan ${i}`"
                                         />
-                                        <InputError :message="form.errors[`custom_${i}_name`]" />
+                                        <InputError :message="form.errors[`custom_${i}_name` as keyof typeof form.errors]" />
                                     </div>
                                     <div class="grid gap-2">
                                         <Label :for="`custom_${i}_value`">Nilai Potongan {{ i }}</Label>
@@ -433,7 +496,7 @@ const handleCancel = () => {
                                             v-model="form[`custom_${i}_value` as keyof typeof form.data]" 
                                             placeholder="0"
                                         />
-                                        <InputError :message="form.errors[`custom_${i}_value`]" />
+                                        <InputError :message="form.errors[`custom_${i}_value` as keyof typeof form.errors]" />
                                     </div>
                                 </div>
                             </div>
@@ -451,32 +514,45 @@ const handleCancel = () => {
                     </CardHeader>
                     <CardContent>
                         <div class="space-y-4">
-                            <div class="flex justify-between items-center py-2 border-b">
-                                <span class="font-medium">Gaji Bersih:</span>
+                            <div class="flex justify-between items-center py-3 border-b border-border">
+                                <span class="font-medium text-base">Gaji Bersih:</span>
                                 <span class="text-lg font-semibold text-green-600">
                                     {{ formatCurrency(parseFloat(form.gaji_bersih) || 0) }}
                                 </span>
                             </div>
-                            <div class="flex justify-between items-center py-2 border-b">
-                                <span class="font-medium">Total Potongan:</span>
+                            <div class="flex justify-between items-center py-3 border-b border-border">
+                                <span class="font-medium text-base">Total Potongan:</span>
                                 <span class="text-lg font-semibold text-red-600">
                                     {{ formatCurrency(totalDeductions) }}
                                 </span>
                             </div>
-                            <div class="flex justify-between items-center py-2 bg-muted/50 rounded-lg px-4">
-                                <span class="font-bold text-lg">Gaji Bersih Setelah Potongan:</span>
-                                <span class="text-xl font-bold text-blue-600">
+                            <div class="flex justify-between items-center py-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 rounded-lg px-6 border border-blue-200 dark:border-blue-800">
+                                <span class="font-bold text-lg text-blue-900 dark:text-blue-100">Gaji Bersih Setelah Potongan:</span>
+                                <span class="text-2xl font-bold text-blue-700 dark:text-blue-300">
                                     {{ formatCurrency(netSalary) }}
                                 </span>
                             </div>
                         </div>
 
-                        <div class="flex justify-end mt-6">
+                        <div class="flex justify-end gap-3 mt-8">
+                            <Button 
+                                @click="printPayrollSlip"
+                                variant="outline"
+                                size="lg"
+                                class="px-6 py-3"
+                                :disabled="!isUserSelected || !form.gaji_bersih"
+                            >
+                                <Printer class="h-5 w-5 mr-2" />
+                                Cetak Struk
+                            </Button>
                             <Button 
                                 @click="showConfirmation"
-                                :disabled="!canSubmit || form.processing"
+                                :disabled="!canSubmit"
+                                size="lg"
+                                class="px-8 py-3"
                             >
-                                <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin mr-2" />
+                                <LoaderCircle v-if="form.processing" class="h-5 w-5 animate-spin mr-2" />
+                                <DollarSign v-else class="h-5 w-5 mr-2" />
                                 Simpan Data Gaji
                             </Button>
                         </div>
@@ -485,14 +561,14 @@ const handleCancel = () => {
             </div>
 
             <!-- Empty State -->
-            <Card v-if="!form.user_id" class="w-full max-w">
-                <CardContent class="flex flex-col items-center justify-center py-12">
-                    <DollarSign class="h-12 w-12 text-muted-foreground mb-4" />
-                    <p class="text-lg font-medium text-muted-foreground mb-2">
+            <Card v-if="!isUserSelected" class="w-full max-w">
+                <CardContent class="flex flex-col items-center justify-center py-16">
+                    <User class="h-16 w-16 text-muted-foreground mb-6" />
+                    <h3 class="text-xl font-semibold text-muted-foreground mb-3">
                         Pilih Personil untuk Input Gaji
-                    </p>
-                    <p class="text-sm text-muted-foreground text-center">
-                        Pilih personil dari dropdown di atas untuk mulai menginput data gaji.
+                    </h3>
+                    <p class="text-base text-muted-foreground text-center max-w-md">
+                        Silakan pilih personil dari dropdown di atas untuk mulai menginput data gaji dan potongan.
                     </p>
                 </CardContent>
             </Card>
@@ -512,5 +588,39 @@ const handleCancel = () => {
         
         <!-- Notifications -->
         <NotificationContainer />
+        
+        <!-- Payroll Slip Printer Component -->
+        <PayrollSlipPrinter 
+            ref="payrollSlipPrinterRef"
+            :payroll-data="{
+                user: selectedUser || { id: 0, name: '', email: '' },
+                gaji_bersih: parseFloat(form.gaji_bersih) || 0,
+                tanggal_dibayarkan: form.tanggal_dibayarkan,
+                total_deductions: totalDeductions,
+                net_salary: netSalary,
+                deductions: {
+                    mdr_bws_bri: parseFloat(form.mdr_bws_bri) || 0,
+                    btn: parseFloat(form.btn) || 0,
+                    twp: parseFloat(form.twp) || 0,
+                    persit: parseFloat(form.persit) || 0,
+                    ikka_persit: parseFloat(form.ikka_persit) || 0,
+                    koperasi: parseFloat(form.koperasi) || 0,
+                    barak: parseFloat(form.barak) || 0,
+                    kowad: parseFloat(form.kowad) || 0,
+                    titipan: parseFloat(form.titipan) || 0,
+                    tenes: parseFloat(form.tenes) || 0,
+                    remaja: parseFloat(form.remaja) || 0,
+                    galon: parseFloat(form.galon) || 0,
+                    sosial: parseFloat(form.sosial) || 0,
+                    pns: parseFloat(form.pns) || 0,
+                    bel_wajib_kop: parseFloat(form.bel_wajib_kop) || 0,
+                    custom_1: { name: form.custom_1_name, value: parseFloat(form.custom_1_value) || 0 },
+                    custom_2: { name: form.custom_2_name, value: parseFloat(form.custom_2_value) || 0 },
+                    custom_3: { name: form.custom_3_name, value: parseFloat(form.custom_3_value) || 0 },
+                    custom_4: { name: form.custom_4_name, value: parseFloat(form.custom_4_value) || 0 },
+                    custom_5: { name: form.custom_5_name, value: parseFloat(form.custom_5_value) || 0 },
+                }
+            }"
+        />
     </AppLayout>
 </template>

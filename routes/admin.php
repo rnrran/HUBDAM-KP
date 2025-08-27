@@ -21,5 +21,6 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
     Route::get('/payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
     Route::get('/payroll/user/{userId}', [PayrollController::class, 'userHistory'])->name('payroll.user');
+    Route::get('/payroll/user/{userId}/chart/{timeRange?}', [PayrollController::class, 'getUserChartData'])->name('payroll.user.chart');
     Route::get('/payroll-users', [PayrollController::class, 'getUsers'])->name('payroll.users');
 });
