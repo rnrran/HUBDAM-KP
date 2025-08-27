@@ -18,6 +18,7 @@ import PayrollSlipPrinter from '@/components/PayrollSlipPrinter.vue';
 import PayrollDetail from '@/components/PayrollDetail.vue';
 import PayrollLineChart from '@/components/PayrollLineChart.vue';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface PayrollRecord {
     id: number;
@@ -58,6 +59,7 @@ interface PayrollRecord {
         name: string;
         email: string;
         pangkat: string | null;
+        profile_photo_url: string | null;
     };
 }
 
@@ -108,26 +110,14 @@ const payrollSlipPrinterRef = ref<InstanceType<typeof PayrollSlipPrinter>>();
 const showDetailModal = ref(false);
 const selectedPayroll = ref<PayrollRecord | null>(null);
 const searchQuery = ref('');
-const currentPage = ref(1);
-const itemsPerPage = ref(10);
 const selectedTimeRange = ref('12');
-const selectedUserForChart = ref('all');
 const customDateRange = ref({
     start: '',
     end: ''
 });
-const chartUserSearch = ref('');
-
-// Watch for itemsPerPage changes and reset to first page
-watch(itemsPerPage, () => {
-    currentPage.value = 1;
-});
 
 // Watch for time range changes
 watch(selectedTimeRange, () => {
-    // Reset to first page when time range changes
-    currentPage.value = 1;
-    
     // Set default custom date range if custom is selected
     if (selectedTimeRange.value === 'custom') {
         const today = new Date();
@@ -139,18 +129,20 @@ watch(selectedTimeRange, () => {
     }
 });
 
-// Watch for user filter changes in chart view
-watch(selectedUserForChart, () => {
-    // Reset to first page when user filter changes
-    currentPage.value = 1;
+// Watch for filter changes
+watch([selectedFilter, searchQuery], () => {
+    // Reset to first page when filters change by redirecting
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
 });
 
-const filteredChartUsers = computed(() => {
-    if (!chartUserSearch.value.trim()) {
+const filteredUsers = computed(() => {
+    if (!searchQuery.value.trim()) {
         return props.users;
     }
     
-    const query = chartUserSearch.value.toLowerCase();
+    const query = searchQuery.value.toLowerCase();
     return props.users.filter(user => 
         user.name.toLowerCase().includes(query) ||
         user.email.toLowerCase().includes(query) ||
@@ -182,30 +174,30 @@ const filteredPayrolls = computed(() => {
 });
 
 const paginatedPayrolls = computed(() => {
-    const startIndex = (currentPage.value - 1) * itemsPerPage.value;
-    const endIndex = startIndex + itemsPerPage.value;
-    return filteredPayrolls.value.slice(startIndex, endIndex);
+    // Since we're getting paginated data from backend, just return the filtered data
+    // The backend should handle the actual pagination
+    return filteredPayrolls.value;
 });
 
 const totalPages = computed(() => {
-    return Math.ceil(filteredPayrolls.value.length / itemsPerPage.value);
+    // Use the backend pagination info
+    return props.payrolls.last_page || 1;
 });
 
 const paginationInfo = computed(() => {
-    const startIndex = (currentPage.value - 1) * itemsPerPage.value;
-    const endIndex = Math.min(currentPage.value * itemsPerPage.value, filteredPayrolls.value.length);
+    // Use the backend pagination info
     return {
-        start: startIndex,
-        end: endIndex,
-        total: filteredPayrolls.value.length
+        start: props.payrolls.from - 1 || 0,
+        end: props.payrolls.to || filteredPayrolls.value.length,
+        total: props.payrolls.total || filteredPayrolls.value.length
     };
 });
 
 const chartTitle = computed(() => {
-    if (selectedUserForChart.value === 'all') {
+    if (selectedFilter.value === 'all') {
         return 'Visualisasi Data Gaji: Semua User';
     } else {
-        const user = props.users.find(u => u.id.toString() === selectedUserForChart.value);
+        const user = props.users.find(u => u.id.toString() === selectedFilter.value);
         return `Visualisasi Data Gaji: ${user?.name || 'User'}`;
     }
 });
@@ -243,8 +235,8 @@ const filteredChartData = computed(() => {
     let data = props.chartData;
     
     // Filter by user if specific user is selected
-    if (selectedUserForChart.value !== 'all') {
-        const userId = parseInt(selectedUserForChart.value);
+    if (selectedFilter.value !== 'all') {
+        const userId = parseInt(selectedFilter.value);
         // Filter chart data based on actual payroll records for the selected user
         const userPayrolls = props.payrolls.data.filter(payroll => payroll.user_id === userId);
         
@@ -304,6 +296,15 @@ const formatDate = (dateString: string): string => {
     });
 };
 
+const getInitials = (name: string) => {
+    const names = name.split(' ');
+    let initials = '';
+    for (const n of names) {
+        initials += n[0];
+    }
+    return initials;
+};
+
 const printPayrollSlip = (payroll: PayrollRecord) => {
     // Create payroll data structure for the printer component
     const payrollData = {
@@ -354,8 +355,8 @@ const printChartData = () => {
     const sampleData = filteredChartData.value[0];
     const payrollData = {
         user: { 
-            id: selectedUserForChart.value === 'all' ? 0 : parseInt(selectedUserForChart.value), 
-            name: selectedUserForChart.value === 'all' ? 'Sample Data' : props.users.find(u => u.id.toString() === selectedUserForChart.value)?.name || 'Sample Data', 
+            id: selectedFilter.value === 'all' ? 0 : parseInt(selectedFilter.value), 
+            name: selectedFilter.value === 'all' ? 'Sample Data' : props.users.find(u => u.id.toString() === selectedFilter.value)?.name || 'Sample Data', 
             email: 'sample@example.com' 
         },
         gaji_bersih: sampleData.gaji_bersih,
@@ -401,14 +402,14 @@ const closeDetail = () => {
 };
 
 const fetchChartData = async () => {
-    if (selectedUserForChart.value === 'all') {
+    if (selectedFilter.value === 'all') {
         // Use the default chart data for all users
         return;
     }
     
     try {
         const timeRange = selectedTimeRange.value === 'custom' ? 'all' : selectedTimeRange.value;
-        const response = await fetch(`/admin/payroll/user/${selectedUserForChart.value}/chart/${timeRange}`);
+        const response = await fetch(`/admin/payroll/user/${selectedFilter.value}/chart/${timeRange}`);
         if (response.ok) {
             const data = await response.json();
             // Update the chart data
@@ -421,7 +422,7 @@ const fetchChartData = async () => {
 };
 
 // Watch for filter changes and fetch new data
-watch([selectedUserForChart, selectedTimeRange, customDateRange], () => {
+watch([selectedFilter, selectedTimeRange, customDateRange], () => {
     if (viewMode.value === 'chart') {
         fetchChartData();
     }
@@ -429,71 +430,88 @@ watch([selectedUserForChart, selectedTimeRange, customDateRange], () => {
 
 const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page;
+        // Redirect to the new page with backend pagination
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', page.toString());
+        window.location.href = url.toString();
     }
 };
 
 const goToFirstPage = () => {
-    currentPage.value = 1;
+    goToPage(1);
 };
 
 const goToLastPage = () => {
-    currentPage.value = totalPages.value;
+    goToPage(totalPages.value);
 };
 
 const goToPreviousPage = () => {
-    if (currentPage.value > 1) {
-        currentPage.value--;
+    if (props.payrolls.current_page > 1) {
+        goToPage(props.payrolls.current_page - 1);
     }
 };
 
 const goToNextPage = () => {
-    if (currentPage.value < totalPages.value) {
-        currentPage.value++;
+    if (props.payrolls.current_page < totalPages.value) {
+        goToPage(props.payrolls.current_page + 1);
     }
 };
 
-// Reset to first page when filters change
-watch([selectedFilter, searchQuery], () => {
-    currentPage.value = 1;
-});
-
-// Helper to get visible pages for pagination
-const getVisiblePages = () => {
+const getVisiblePages = (): (number | string)[] => {
+    const total = props.payrolls.last_page || 1;
+    const current = props.payrolls.current_page || 1;
     const pages: (number | string)[] = [];
-    const startPage = Math.max(1, currentPage.value - 2);
-    const endPage = Math.min(totalPages.value, currentPage.value + 2);
-
-    if (startPage > 1) {
+    
+    if (total <= 7) {
+        // Show all pages if total is 7 or less
+        for (let i = 1; i <= total; i++) {
+            pages.push(i);
+        }
+    } else {
+        // Always show first page
         pages.push(1);
-        if (startPage > 2) {
+        
+        if (current > 3) {
             pages.push('...');
         }
-    }
-    for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-    }
-    if (endPage < totalPages.value) {
-        if (endPage < totalPages.value - 1) {
+        
+        // Show pages around current page
+        const start = Math.max(2, current - 1);
+        const end = Math.min(total - 1, current + 1);
+        
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+        
+        if (current < total - 2) {
             pages.push('...');
         }
-        pages.push(totalPages.value);
+        
+        // Always show last page
+        if (total > 1) {
+            pages.push(total);
+        }
     }
+    
     return pages;
 };
 </script>
 
 <template>
-    <Head title="Lihat Gaji" />
-
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-6 rounded-xl p-6 overflow-x-auto">
+    <AppLayout>
+        <Head title="Lihat Gaji" />
+        
+        <div class="mx-6 my-6 space-y-6">
             <!-- Header -->
-            <div class="space-y-2">
-                <h1 class="text-2xl font-bold tracking-tight">Lihat Gaji Personil</h1>
-                <p class="text-muted-foreground">
-                    Lihat riwayat gaji dan visualisasi data gaji personil.
-                </p>
+            <div class="flex flex-col space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold tracking-tight">Lihat Gaji</h1>
+                        <p class="text-muted-foreground">
+                            Kelola dan lihat data gaji personil dengan mudah.
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <!-- Controls -->
@@ -504,23 +522,23 @@ const getVisiblePages = () => {
                         <Search class="h-4 w-4" />
                         <Input
                             v-model="searchQuery"
-                            placeholder="Cari personil..."
+                            :placeholder="viewMode === 'table' ? 'Cari personil...' : 'Cari user...'"
                             class="w-64"
                         />
                     </div>
                     
-                    <!-- Filter -->
+                    <!-- User Filter -->
                     <div class="flex items-center space-x-2">
-                        <Filter class="h-4 w-4" />
-                        <Label for="filter-select">Filter:</Label>
+                        <Users class="h-4 w-4" />
+                        <Label for="filter-select">{{ viewMode === 'table' ? 'Filter:' : 'User:' }}</Label>
                         <Select v-model="selectedFilter">
                             <SelectTrigger class="w-48">
-                                <SelectValue placeholder="Semua Personil" />
+                                <SelectValue :placeholder="selectedFilter === 'all' ? 'Semua User' : getUserName(selectedFilter)" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Semua Personil</SelectItem>
+                                <SelectItem value="all">Semua User</SelectItem>
                                 <SelectItem 
-                                    v-for="user in props.users" 
+                                    v-for="user in filteredUsers" 
                                     :key="user.id" 
                                     :value="user.id.toString()"
                                 >
@@ -529,110 +547,75 @@ const getVisiblePages = () => {
                             </SelectContent>
                         </Select>
                     </div>
-
-                    <!-- View Mode Toggle -->
-                    <div class="flex items-center space-x-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            :class="{ 'bg-primary text-primary-foreground': viewMode === 'table' }"
-                            @click="viewMode = 'table'"
-                        >
-                            <Eye class="h-4 w-4 mr-2" />
-                            Tabel
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            :class="{ 'bg-primary text-primary-foreground': viewMode === 'chart' }"
-                            @click="viewMode = 'chart'"
-                        >
-                            <BarChart3 class="h-4 w-4 mr-2" />
-                            Grafik
-                        </Button>
+                    
+                    <!-- Time Range Filter (Only for Chart View) -->
+                    <div v-if="viewMode === 'chart'" class="flex items-center space-x-2">
+                        <Calendar class="h-4 w-4" />
+                        <Label for="time-range">Rentang Waktu:</Label>
+                        <Select v-model="selectedTimeRange">
+                            <SelectTrigger class="w-32">
+                                <SelectValue :placeholder="getTimeRangeLabel(selectedTimeRange)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="4">4 Minggu</SelectItem>
+                                <SelectItem value="8">8 Minggu</SelectItem>
+                                <SelectItem value="12">12 Minggu</SelectItem>
+                                <SelectItem value="6">6 Bulan</SelectItem>
+                                <SelectItem value="12">12 Bulan</SelectItem>
+                                <SelectItem value="24">24 Bulan</SelectItem>
+                                <SelectItem value="all">Semua</SelectItem>
+                                <SelectItem value="custom">Custom Range</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
 
-                <!-- Chart Filters (Outside Card) -->
-                <div v-if="viewMode === 'chart'" class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between p-4 bg-muted/50 rounded-lg border">
-                    <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                        <!-- Search Bar for Users -->
-                        <div class="flex items-center space-x-2">
-                            <Search class="h-4 w-4" />
-                            <Input
-                                v-model="chartUserSearch"
-                                placeholder="Cari user..."
-                                class="w-48"
-                            />
-                        </div>
-                        
-                        <!-- User Filter for Chart -->
-                        <div class="flex items-center space-x-2">
-                            <Users class="h-4 w-4" />
-                            <Label for="chart-user-filter">User:</Label>
-                            <Select v-model="selectedUserForChart">
-                                <SelectTrigger class="w-48">
-                                    <SelectValue :placeholder="selectedUserForChart === 'all' ? 'Semua User' : getUserName(selectedUserForChart)" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Semua User</SelectItem>
-                                    <SelectItem 
-                                        v-for="user in filteredChartUsers" 
-                                        :key="user.id" 
-                                        :value="user.id.toString()"
-                                    >
-                                        {{ user.name }} - {{ user.pangkat || 'Tidak ada pangkat' }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        
-                        <!-- Time Range Filter -->
-                        <div class="flex items-center space-x-2">
-                            <Calendar class="h-4 w-4" />
-                            <Label for="time-range">Rentang Waktu:</Label>
-                            <Select v-model="selectedTimeRange">
-                                <SelectTrigger class="w-32">
-                                    <SelectValue :placeholder="getTimeRangeLabel(selectedTimeRange)" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="4">4 Minggu</SelectItem>
-                                    <SelectItem value="8">8 Minggu</SelectItem>
-                                    <SelectItem value="12">12 Minggu</SelectItem>
-                                    <SelectItem value="6">6 Bulan</SelectItem>
-                                    <SelectItem value="12">12 Bulan</SelectItem>
-                                    <SelectItem value="24">24 Bulan</SelectItem>
-                                    <SelectItem value="all">Semua</SelectItem>
-                                    <SelectItem value="custom">Custom Range</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+                <!-- View Mode Toggle -->
+                <div class="flex items-center space-x-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-primary text-primary-foreground': viewMode === 'table' }"
+                        @click="viewMode = 'table'"
+                    >
+                        <Eye class="h-4 w-4 mr-2" />
+                        Tabel
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        :class="{ 'bg-primary text-primary-foreground': viewMode === 'chart' }"
+                        @click="viewMode = 'chart'"
+                    >
+                        <BarChart3 class="h-4 w-4 mr-2" />
+                        Grafik
+                    </Button>
                 </div>
-                
-                <!-- Custom Date Range -->
-                <div v-if="viewMode === 'chart' && selectedTimeRange === 'custom'" class="flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div class="flex items-center space-x-2">
-                        <Calendar class="h-4 w-4 text-blue-600" />
-                        <Label for="start-date" class="text-blue-700 dark:text-blue-300">Dari:</Label>
-                        <Input
-                            id="start-date"
-                            v-model="customDateRange.start"
-                            type="date"
-                            class="w-40"
-                        />
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <Calendar class="h-4 w-4 text-blue-600" />
-                        <Label for="end-date" class="text-blue-700 dark:text-blue-300">Sampai:</Label>
-                        <Input
-                            id="end-date"
-                            v-model="customDateRange.end"
-                            type="date"
-                            class="w-40"
-                        />
-                    </div>
+            </div>
+            
+            <!-- Custom Date Range (Only for Chart View) -->
+            <div v-if="viewMode === 'chart' && selectedTimeRange === 'custom'" class="flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div class="flex items-center space-x-2">
+                    <Calendar class="h-4 w-4 text-blue-600" />
+                    <Label for="start-date" class="text-blue-700 dark:text-blue-300">Dari:</Label>
+                    <Input
+                        id="start-date"
+                        v-model="customDateRange.start"
+                        type="date"
+                        class="w-40"
+                    />
                 </div>
+                <div class="flex items-center space-x-2">
+                    <Calendar class="h-4 w-4 text-blue-600" />
+                    <Label for="end-date" class="text-blue-700 dark:text-blue-300">Sampai:</Label>
+                    <Input
+                        id="end-date"
+                        v-model="customDateRange.end"
+                        type="date"
+                        class="w-40"
+                    />
+                </div>
+            </div>
 
                 <!-- Stats -->
                 <div class="flex items-center space-x-4 text-sm text-muted-foreground">
@@ -699,81 +682,97 @@ const getVisiblePages = () => {
             <!-- Table View -->
             <Card v-if="viewMode === 'table'" class="w-full">
                 <CardHeader>
-                    <CardTitle class="flex items-center space-x-2">
-                        <Eye class="h-5 w-5" />
-                        <span>Riwayat Gaji Personil</span>
-                    </CardTitle>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <Eye class="h-5 w-5" />
+                            <span>Data Payroll</span>
+                        </div>
+                        <div class="text-sm text-muted-foreground">
+                            Total: {{ props.payrolls.total }} record
+                        </div>
+                    </div>
                     <CardDescription>
-                        Data riwayat gaji dan potongan personil.
+                        Daftar semua data payroll personil yang tersedia.
                     </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent class="px-0">
                     <div class="overflow-x-auto">
-                        <div v-if="filteredPayrolls.length === 0" class="text-center py-12 text-muted-foreground">
-                            <Users class="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>Tidak ada data gaji yang ditemukan</p>
-                        </div>
-                        
-                        <table v-else class="w-full table-auto">
-                            <thead>
-                                <tr class="border-b">
-                                    <th class="text-center p-4 font-medium">Personil</th>
-                                    <th class="text-center p-4 font-medium">Pangkat</th>
-                                    <th class="text-center p-4 font-medium">Gaji Bersih (Rp)</th>
-                                    <th class="text-center p-4 font-medium">Total Potongan (Rp)</th>
-                                    <th class="text-center p-4 font-medium">Gaji Bersih Setelah Potongan (Rp)</th>
-                                    <th class="text-center p-4 font-medium">Tanggal Dibayar</th>
-                                    <th class="text-center p-4 font-medium">Aksi</th>
+                        <table class="w-full">
+                            <thead class="bg-muted/50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Personil
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Gaji Bersih
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Total Potongan
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Gaji Bersih Setelah Potongan
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Tanggal Dibayarkan
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                        Aksi
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr v-for="payroll in paginatedPayrolls" :key="payroll.id" class="border-b hover:bg-muted/50 text-left">
-                                    <td class="p-4">
-                                        <div>
-                                            <div class="font-medium ">{{ payroll.user.name }}</div>
-                                            <div class="text-sm text-muted-foreground">{{ payroll.user.email }}</div>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <tr v-if="paginatedPayrolls.length === 0" class="hover:bg-muted/50">
+                                    <td colspan="6" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                        <div class="flex flex-col items-center space-y-2">
+                                            <Users class="h-12 w-12 text-gray-300" />
+                                            <div class="text-lg font-medium">Tidak ada data</div>
+                                            <div class="text-sm">Tidak ada data payroll yang ditemukan dengan filter yang dipilih.</div>
                                         </div>
                                     </td>
-                                    <td class="p-4">
-                                        <span class="text-sm">{{ payroll.user.pangkat || 'Tidak ada pangkat' }}</span>
+                                </tr>
+                                <tr v-for="payroll in paginatedPayrolls" :key="payroll.id" class="hover:bg-muted/50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <div class="flex items-center">
+                                            <Avatar class="h-8 w-8 mr-3">
+                                                <AvatarImage v-if="payroll.user.profile_photo_url" :src="payroll.user.profile_photo_url" :alt="payroll.user.name" />
+                                                <AvatarFallback>{{ getInitials(payroll.user.name) }}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <div class="font-medium text-gray-900 dark:text-gray-100">{{ payroll.user.name }}</div>
+                                                <div class="text-gray-500 dark:text-gray-400">{{ payroll.user.email }}</div>
+                                                <div class="text-xs text-gray-400 dark:text-gray-500">{{ payroll.user.pangkat || 'Tidak ada pangkat' }}</div>
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td class="p-4 text-right">
-                                        <span class="font-medium text-green-600">
-                                            {{ formatCurrency(payroll.gaji_bersih) }}
-                                        </span>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                        {{ formatCurrency(payroll.gaji_bersih) }}
                                     </td>
-                                    <td class="p-4 text-right">
-                                        <span class="font-medium  text-red-600">
-                                            {{ formatCurrency(payroll.total_deductions) }}
-                                        </span>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                        {{ formatCurrency(payroll.total_deductions) }}
                                     </td>
-                                    <td class="p-4 text-right">
-                                        <span class="font-bold text-black">
-                                            {{ formatCurrency(payroll.net_salary) }}
-                                        </span>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                        {{ formatCurrency(payroll.net_salary) }}
                                     </td>
-                                    <td class="p-4">
-                                        <span class="text-sm">{{ formatDate(payroll.tanggal_dibayarkan) }}</span>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                        {{ formatDate(payroll.tanggal_dibayarkan) }}
                                     </td>
-                                    <td class="p-4">
-                                        <div class="flex items-center justify-center space-x-2">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div class="flex items-center space-x-2">
                                             <Button
+                                                @click="showDetail(payroll)"
                                                 variant="outline"
                                                 size="sm"
-                                                class="h-8 w-8 p-0"
-                                                @click="showDetail(payroll)"
-                                                title="Lihat Detail"
                                             >
-                                                <Info class="h-4 w-4" />
+                                                <Info class="h-4 w-4 mr-2" />
+                                                Lihat Detail
                                             </Button>
                                             <Button
+                                                @click="printPayrollSlip(payroll)"
                                                 variant="outline"
                                                 size="sm"
-                                                class="h-8 w-8 p-0"
-                                                @click="printPayrollSlip(payroll)"
-                                                title="Cetak Struk"
                                             >
-                                                <Printer class="h-4 w-4" />
+                                                <Printer class="h-4 w-4 mr-2" />
+                                                Cetak Struk
                                             </Button>
                                         </div>
                                     </td>
@@ -783,86 +782,79 @@ const getVisiblePages = () => {
                     </div>
 
                     <!-- Pagination Info -->
-                    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div class="flex items-center space-x-2 text-sm text-muted-foreground">
-                            <span>Menampilkan {{ paginationInfo.start }} - {{ paginationInfo.end }} dari {{ paginationInfo.total }} record</span>
-                            <span class="hidden sm:inline">(Halaman {{ currentPage }} dari {{ totalPages }})</span>
-                        </div>
-                        
-                        <!-- Items per page selector -->
-                        <div class="flex items-center space-x-2">
-                            <Label for="items-per-page" class="text-sm">Per halaman:</Label>
-                            <Select v-model="itemsPerPage" @update:model-value="(value) => itemsPerPage = Number(value)">
-                                <SelectTrigger class="w-20">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="5">5</SelectItem>
-                                    <SelectItem value="10">10</SelectItem>
-                                    <SelectItem value="20">20</SelectItem>
-                                    <SelectItem value="50">50</SelectItem>
-                                </SelectContent>
-                            </Select>
+                    <div v-if="filteredPayrolls.length > 0" class="px-6 py-4 border-t bg-muted/30">
+                        <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                            <!-- Pagination Info Text -->
+                            <div class="text-sm text-muted-foreground">
+                                <span class="font-medium">Menampilkan {{ props.payrolls.from }}-{{ props.payrolls.to }} dari {{ props.payrolls.total }} data</span>
+                                <span v-if="totalPages > 1" class="ml-2 text-xs">(Halaman {{ props.payrolls.current_page }} dari {{ props.payrolls.last_page }})</span>
+                            </div>
                         </div>
                     </div>
-                    
+
                     <!-- Pagination Controls -->
-                    <div v-if="totalPages > 1" class="mt-6 flex items-center justify-center space-x-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            @click="goToFirstPage"
-                            :disabled="currentPage === 1"
-                        >
-                            <ChevronsLeft class="h-4 w-4" />
-                        </Button>
-                        
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            @click="goToPreviousPage"
-                            :disabled="currentPage === 1"
-                        >
-                            <ChevronLeft class="h-4 w-4" />
-                        </Button>
-                        
-                        <!-- Page Numbers -->
-                        <div class="flex items-center space-x-1">
-                            <template v-for="page in getVisiblePages()" :key="page">
-                                <Button
-                                    v-if="typeof page === 'number'"
-                                    variant="outline"
-                                    size="sm"
-                                    :class="{ 'bg-primary text-primary-foreground': page === currentPage }"
-                                    @click="goToPage(page)"
-                                >
-                                    {{ page }}
-                                </Button>
-                                <span v-else class="px-2 text-muted-foreground">{{ page }}</span>
-                            </template>
+                    <div v-if="totalPages > 1" class="px-6 py-4 border-t bg-muted/20">
+                        <div class="flex items-center justify-center space-x-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="goToFirstPage"
+                                :disabled="props.payrolls.current_page === 1"
+                                class="px-3 py-2"
+                            >
+                                <ChevronsLeft class="h-4 w-4" />
+                            </Button>
+                            
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="goToPreviousPage"
+                                :disabled="props.payrolls.current_page === 1"
+                                class="px-3 py-2"
+                            >
+                                <ChevronLeft class="h-4 w-4" />
+                            </Button>
+                            
+                            <!-- Page Numbers -->
+                            <div class="flex items-center space-x-1">
+                                <template v-for="page in getVisiblePages()" :key="page">
+                                    <Button
+                                        v-if="typeof page === 'number'"
+                                        variant="outline"
+                                        size="sm"
+                                        :class="{ 'bg-primary text-primary-foreground': page === props.payrolls.current_page }"
+                                        @click="goToPage(page)"
+                                        class="px-3 py-2 min-w-[40px]"
+                                    >
+                                        {{ page }}
+                                    </Button>
+                                    <span v-else class="px-2 text-muted-foreground">{{ page }}</span>
+                                </template>
+                            </div>
+                            
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="goToNextPage"
+                                :disabled="props.payrolls.current_page === props.payrolls.last_page"
+                                class="px-3 py-2"
+                            >
+                                <ChevronRight class="h-4 w-4" />
+                            </Button>
+                            
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                @click="goToLastPage"
+                                :disabled="props.payrolls.current_page === props.payrolls.last_page"
+                                class="px-3 py-2"
+                            >
+                                <ChevronsRight class="h-4 w-4" />
+                            </Button>
                         </div>
-                        
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            @click="goToNextPage"
-                            :disabled="currentPage === totalPages"
-                        >
-                            <ChevronRight class="h-4 w-4" />
-                        </Button>
-                        
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            @click="goToLastPage"
-                            :disabled="currentPage === totalPages"
-                        >
-                            <ChevronsRight class="h-4 w-4" />
-                        </Button>
                     </div>
                 </CardContent>
             </Card>
-        </div>
         
         <!-- Payroll Slip Printer Component -->
         <PayrollSlipPrinter 
