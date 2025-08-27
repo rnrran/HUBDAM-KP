@@ -116,6 +116,15 @@ const customDateRange = ref({
     end: ''
 });
 
+// Initialize selectedFilter from URL (?user=<id>)
+const initParams = new URL(window.location.href).searchParams;
+const initUser = initParams.get('user');
+if (initUser) {
+    selectedFilter.value = initUser;
+} else {
+    selectedFilter.value = 'all';
+}
+
 // Watch for time range changes
 watch(selectedTimeRange, () => {
     // Set default custom date range if custom is selected
@@ -129,13 +138,19 @@ watch(selectedTimeRange, () => {
     }
 });
 
-// Watch for filter changes
-watch([selectedFilter, searchQuery], () => {
-    // Reset to first page when filters change by redirecting
+// Explicit handler for filter dropdown changes
+const onFilterChange = (value: string) => {
+    selectedFilter.value = value;
     const url = new URL(window.location.href);
     url.searchParams.set('page', '1');
-    window.location.href = url.toString();
-});
+    if (value === 'all') {
+        url.searchParams.delete('user');
+    } else {
+        url.searchParams.set('user', value);
+    }
+    // Update URL without reloading the page
+    window.history.replaceState({}, '', url.toString());
+};
 
 const filteredUsers = computed(() => {
     if (!searchQuery.value.trim()) {
@@ -531,7 +546,7 @@ const getVisiblePages = (): (number | string)[] => {
                     <div class="flex items-center space-x-2">
                         <Users class="h-4 w-4" />
                         <Label for="filter-select">{{ viewMode === 'table' ? 'Filter:' : 'User:' }}</Label>
-                        <Select v-model="selectedFilter">
+                        <Select v-model="selectedFilter" @update:model-value="onFilterChange">
                             <SelectTrigger class="w-48">
                                 <SelectValue :placeholder="selectedFilter === 'all' ? 'Semua User' : getUserName(selectedFilter)" />
                             </SelectTrigger>
