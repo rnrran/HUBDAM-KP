@@ -106,11 +106,7 @@ const showConfirmation = () => {
 
 const handleConfirm = () => {
     showConfirmModal.value = false;
-    // Transform role to backend-expected value
-    form.transform((data) => ({
-        ...data,
-        role: data.role === 'pengguna' ? 'non-admin' : data.role,
-    })).post(route('admin.users.store'), {
+    form.post(route('admin.users.store'), {
         onSuccess: () => {
             success('Berhasil!', `Akun untuk ${form.name} berhasil dibuat.`);
             form.reset();

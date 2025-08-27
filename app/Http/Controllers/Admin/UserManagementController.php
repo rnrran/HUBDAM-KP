@@ -48,7 +48,7 @@ class UserManagementController extends Controller
             'password' => ['required', 'string', 'min:8'],
             'pangkat' => 'nullable|string|max:255',
             'nomor_registrasi' => 'nullable|string|max:255',
-            'role' => 'required|string|in:tamu,admin,non-admin',
+            'role' => 'required|string|in:admin,supervisor,pengguna',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -58,7 +58,7 @@ class UserManagementController extends Controller
             'password' => Hash::make($request->password),
             'pangkat' => $request->pangkat,
             'nomor_registrasi' => $request->nomor_registrasi,
-            'role' => $request->role ?? 'tamu',
+            'role' => $request->role ?? 'pengguna',
         ];
 
         // Handle profile photo upload
@@ -119,7 +119,7 @@ class UserManagementController extends Controller
             'password' => ['nullable', 'string', 'min:8'],
             'pangkat' => 'nullable|string|max:255',
             'nomor_registrasi' => 'nullable|string|max:255',
-            'role' => 'required|string|in:tamu,admin,non-admin',
+            'role' => 'required|string|in:admin,supervisor,pengguna',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 

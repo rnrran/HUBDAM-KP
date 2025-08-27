@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { router } from '@inertiajs/vue3';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
+import { useRBAC } from '@/composables/useRBAC';
 
 interface PayrollRecord {
     id: number;
@@ -323,6 +324,9 @@ const getInitials = (name: string) => {
     return initials;
 };
 
+// RBAC guards for actions
+const { canEditPayroll, canDeletePayroll } = useRBAC();
+
 const printPayrollSlip = (payroll: PayrollRecord) => {
     // Create payroll data structure for the printer component
     const payrollData = {
@@ -433,6 +437,7 @@ const cancelDelete = () => {
 };
 
 const confirmDelete = () => {
+    if (!canDeletePayroll.value) return;
     if (!payrollIdToDelete.value) return;
     // @ts-ignore route helper from Ziggy
     router.delete(route('admin.payroll.destroy', payrollIdToDelete.value));
@@ -441,6 +446,7 @@ const confirmDelete = () => {
 };
 
 const goToEdit = (id: number) => {
+    if (!canEditPayroll.value) return;
     // @ts-ignore route helper from Ziggy
     router.visit(route('admin.payroll.edit', id));
 };
@@ -575,7 +581,7 @@ const getVisiblePages = (): (number | string)[] => {
                     <div class="flex items-center space-x-2">
                         <Users class="h-4 w-4" />
                         <Label for="filter-select">{{ viewMode === 'table' ? 'Filter:' : 'User:' }}</Label>
-                        <Select v-model="selectedFilter" @update:model-value="onFilterChange">
+                        <Select v-model="selectedFilter">
                             <SelectTrigger class="w-48">
                                 <SelectValue :placeholder="selectedFilter === 'all' ? 'Semua User' : getUserName(selectedFilter)" />
                             </SelectTrigger>
@@ -811,6 +817,7 @@ const getVisiblePages = (): (number | string)[] => {
                                                 Detail
                                             </Button>
                                             <Button
+                                                v-if="canEditPayroll"
                                                 @click="goToEdit(payroll.id)"
                                                 variant="outline"
                                                 size="sm"
@@ -826,6 +833,7 @@ const getVisiblePages = (): (number | string)[] => {
                                                 Cetak
                                             </Button>
                                             <Button
+                                                v-if="canDeletePayroll"
                                                 variant="destructive"
                                                 size="sm"
                                                 @click="askDelete(payroll.id)"
