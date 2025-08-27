@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import NotificationContainer from '@/components/NotificationContainer.vue';
@@ -37,9 +37,11 @@ interface Props {
     users: User[];
     selectedUser?: User | null;
     pangkatOptions?: string[];
+    currentRole?: string; // 'admin' | 'supervisor' | 'pengguna'
 }
 
 const props = defineProps<Props>();
+const page = usePage();
 
 const { success, error } = useNotifications();
 
@@ -76,6 +78,13 @@ const form = useForm({
     profile_photo: null as File | null,
 });
 
+// Computed role permission (supervisor is view-only)
+const isEditable = computed(() => {
+    // prefer prop if provided, fallback to shared page prop
+    const role = props.currentRole || (page.props.currentRole as string) || 'pengguna';
+    return role !== 'supervisor';
+});
+
 // Initialize form if selectedUser is provided
 if (props.selectedUser) {
     selectedUserId.value = props.selectedUser.id.toString();
@@ -83,7 +92,9 @@ if (props.selectedUser) {
     form.email = props.selectedUser.email;
     form.pangkat = props.selectedUser.pangkat || '';
     form.nomor_registrasi = props.selectedUser.nomor_registrasi || '';
-    form.role = props.selectedUser.role || 'tamu';
+    // Normalize legacy role names to new RBAC set
+    const incomingRole = props.selectedUser.role || 'pengguna';
+    form.role = incomingRole === 'non-admin' ? 'pengguna' : incomingRole;
 }
 
 // Users data loaded from controller
@@ -124,7 +135,7 @@ watch(selectedUserId, async (newUserId, oldUserId) => {
         form.email = userData.email;
         form.pangkat = userData.pangkat || '';
         form.nomor_registrasi = userData.nomor_registrasi || '';
-        form.role = userData.role || 'tamu';
+        form.role = (userData.role === 'non-admin') ? 'pengguna' : (userData.role || 'pengguna');
         form.password = ''; // Always reset password field
         form.profile_photo = null; // Reset profile photo
         imagePreviewUrl.value = ''; // Reset image preview
@@ -148,6 +159,7 @@ const generatePassword = async () => {
 };
 
 const showConfirmation = () => {
+    if (!isEditable.value) return;
     showConfirmModal.value = true;
 };
 
@@ -155,7 +167,11 @@ const handleConfirm = () => {
     if (!selectedUserId.value) return;
     
     showConfirmModal.value = false;
-    form.post(route('admin.users.update', selectedUserId.value), {
+    // Transform role to backend-expected value if needed
+    form.transform((data) => ({
+        ...data,
+        role: data.role === 'pengguna' ? 'non-admin' : data.role,
+    })).post(route('admin.users.update', selectedUserId.value), {
         onSuccess: () => {
             success('Berhasil!', `Akun ${selectedUser.value?.name} berhasil diperbarui.`);
             // Reset only the profile photo field to avoid triggering watch
@@ -217,40 +233,34 @@ const getProfilePhotoUrl = (user: User) => {
                 </p>
             </div>
 
-            <!-- User Selection -->
-            <Card class="w-full max-w">
+            <!-- User selector -->
+            <Card class="w-full">
                 <CardHeader>
-                    <CardTitle class="flex items-center space-x-2">
-                        <User class="h-5 w-5" />
-                        <span>Pilih Pengguna</span>
-                    </CardTitle>
-                    <CardDescription>
-                        Pilih pengguna yang ingin diedit informasinya.
-                    </CardDescription>
+                    <CardTitle>Pilih Pengguna</CardTitle>
+                    <CardDescription>Pilih pengguna yang akan diperbarui.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div class="grid gap-2">
-                        <Label for="user-select">Pilih Pengguna</Label>
+                    <div class="grid gap-2 max-w-xl">
+                        <Label for="selected_user">Pengguna</Label>
                         <Select v-model="selectedUserId">
                             <SelectTrigger>
-                                <SelectValue :placeholder="selectedUser ? `${selectedUser.name} - ${selectedUser.email}` : 'Pilih pengguna untuk diedit'" />
+                                <SelectValue :placeholder="selectedUser ? selectedUser.name : 'Pilih pengguna...'" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem 
-                                    v-for="user in users" 
-                                    :key="user.id" 
-                                    :value="user.id.toString()"
+                                    v-for="u in props.users" 
+                                    :key="u.id" 
+                                    :value="u.id.toString()"
                                 >
-                                    {{ user.name }} - {{ user.email }}
+                                    {{ u.name }} - {{ u.email }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
-                        <div v-if="users.length === 0" class="text-sm text-red-500">
-                            No users found. Check if users are being passed from the controller.
-                        </div>
                     </div>
                 </CardContent>
             </Card>
+
+            
 
             <!-- Edit Form -->
             <Card v-if="selectedUserId" class="w-full">
@@ -274,6 +284,7 @@ const getProfilePhotoUrl = (user: User) => {
                                 v-model="form.name" 
                                 placeholder="Masukkan nama lengkap"
                                 required
+                                :disabled="!isEditable"
                             />
                             <InputError :message="form.errors.name" />
                         </div>
@@ -286,6 +297,7 @@ const getProfilePhotoUrl = (user: User) => {
                                 v-model="form.email" 
                                 placeholder="contoh@email.com"
                                 required
+                                :disabled="!isEditable"
                             />
                             <InputError :message="form.errors.email" />
                         </div>
@@ -299,6 +311,7 @@ const getProfilePhotoUrl = (user: User) => {
                                     v-model="form.password" 
                                     placeholder="Kosongkan jika tidak ingin mengubah password"
                                     class="pr-20"
+                                    :disabled="!isEditable"
                                 />
                                 <div class="absolute inset-y-0 right-0 flex items-center space-x-1 pr-3">
                                     <Button
@@ -307,6 +320,7 @@ const getProfilePhotoUrl = (user: User) => {
                                         size="sm"
                                         class="h-6 w-6 p-0"
                                         @click="showPassword = !showPassword"
+                                        :disabled="!isEditable"
                                     >
                                         <Eye v-if="!showPassword" class="h-4 w-4" />
                                         <EyeOff v-else class="h-4 w-4" />
@@ -319,7 +333,7 @@ const getProfilePhotoUrl = (user: User) => {
                                 size="sm" 
                                 class="w-fit"
                                 @click="generatePassword"
-                                :disabled="generatingPassword"
+                                :disabled="generatingPassword || !isEditable"
                             >
                                 <RefreshCw v-if="generatingPassword" class="h-4 w-4 animate-spin mr-2" />
                                 <RefreshCw v-else class="h-4 w-4 mr-2" />
@@ -330,7 +344,7 @@ const getProfilePhotoUrl = (user: User) => {
 
                         <div class="grid gap-2">
                             <Label for="pangkat">Pangkat</Label>
-                            <Select v-model="form.pangkat">
+                            <Select v-model="form.pangkat" :disabled="!isEditable">
                                 <SelectTrigger>
                                     <SelectValue :placeholder="form.pangkat || 'Pilih pangkat'" />
                                 </SelectTrigger>
@@ -356,6 +370,7 @@ const getProfilePhotoUrl = (user: User) => {
                                 id="nomor_registrasi" 
                                 v-model="form.nomor_registrasi" 
                                 placeholder="Masukkan nomor registrasi"
+                                :disabled="!isEditable"
                             />
                             <InputError :message="form.errors.nomor_registrasi" />
                         </div>
@@ -391,6 +406,7 @@ const getProfilePhotoUrl = (user: User) => {
                                         accept="image/*" 
                                         @change="handleFileChange"
                                         class="max-w-xs"
+                                        :disabled="!isEditable"
                                     />
                                     <p class="text-sm text-muted-foreground">
                                         Format: JPG, PNG, GIF. Maksimal 2MB.
@@ -405,14 +421,14 @@ const getProfilePhotoUrl = (user: User) => {
 
                         <div class="grid gap-2">
                             <Label for="role">Role</Label>
-                            <Select v-model="form.role">
+                            <Select v-model="form.role" :disabled="!isEditable">
                                 <SelectTrigger>
                                     <SelectValue :placeholder="form.role || 'Pilih role'" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="tamu">Tamu</SelectItem>
+                                    <SelectItem value="pengguna">Pengguna</SelectItem>
                                     <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="non-admin">Non-Admin</SelectItem>
+                                    <SelectItem value="supervisor">Supervisor</SelectItem>
                                 </SelectContent>
                             </Select>
                             <InputError :message="form.errors.role" />
@@ -421,7 +437,7 @@ const getProfilePhotoUrl = (user: User) => {
                         <div class="flex justify-end">
                             <Button 
                                 @click="showConfirmation"
-                                :disabled="!canUpdateAccount || form.processing"
+                                :disabled="!canUpdateAccount || form.processing || !isEditable"
                             >
                                 <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin mr-2" />
                                 Perbarui Akun

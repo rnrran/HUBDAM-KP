@@ -59,7 +59,7 @@ const form = useForm({
     password: '',
     pangkat: '',
     nomor_registrasi: '',
-    role: 'tamu',
+    role: 'pengguna',
     profile_photo: null as File | null,
 });
 
@@ -106,7 +106,11 @@ const showConfirmation = () => {
 
 const handleConfirm = () => {
     showConfirmModal.value = false;
-    form.post(route('admin.users.store'), {
+    // Transform role to backend-expected value
+    form.transform((data) => ({
+        ...data,
+        role: data.role === 'pengguna' ? 'non-admin' : data.role,
+    })).post(route('admin.users.store'), {
         onSuccess: () => {
             success('Berhasil!', `Akun untuk ${form.name} berhasil dibuat.`);
             form.reset();
@@ -324,9 +328,9 @@ const getProfilePhotoPreview = () => {
                                 <SelectValue :placeholder="form.role || 'Pilih role'" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="tamu">Tamu</SelectItem>
+                                <SelectItem value="pengguna">Pengguna</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="non-admin">Non-Admin</SelectItem>
+                                <SelectItem value="supervisor">Supervisor</SelectItem>
                             </SelectContent>
                         </Select>
                         <InputError :message="form.errors.role" />
