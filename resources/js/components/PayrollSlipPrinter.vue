@@ -6,7 +6,8 @@ interface User {
     id: number;
     name: string;
     email: string;
-    pangkat?: string;
+    pangkat?: string | null;
+    nomor_registrasi?: string | null;
 }
 
 interface PayrollData {
@@ -15,6 +16,7 @@ interface PayrollData {
         name: string;
         email: string;
         pangkat?: string | null;
+        nomor_registrasi?: string | null;
     };
     gaji_bersih: number;
     tanggal_dibayarkan: string;
@@ -171,7 +173,8 @@ const printPayrollSlip = (payrollData?: PayrollData) => {
         <body>
             <div class="header">
                 <div class="title">STRUK GAJI PERSONIL</div>
-                <div class="subtitle">KP-HUBDAM</div>
+                <div class="subtitle">KOMLEKDAM XIV/Hasanuddin</div>
+                <div class="subtitle">${new Date(data.tanggal_dibayarkan).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</div>
             </div>
             
             <div class="info-section">
@@ -180,15 +183,17 @@ const printPayrollSlip = (payrollData?: PayrollData) => {
                     <span>${data.user.name}</span>
                 </div>
                 <div class="info-row">
+                    <strong>Pangkat:</strong>
+                    <span>${data.user.pangkat ?? 'Belum ada ...'}</span>
+                </div>
+                <div class="info-row">
+                    <strong>Nomor Registrasi:</strong>
+                    <span>${data.user.nomor_registrasi ?? 'Belum ada ...'}</span>
+                </div>
+                <div class="info-row">
                     <strong>Email:</strong>
                     <span>${data.user.email}</span>
                 </div>
-                ${data.user.pangkat ? `
-                <div class="info-row">
-                    <strong>Pangkat:</strong>
-                    <span>${data.user.pangkat}</span>
-                </div>
-                ` : ''}
                 <div class="info-row">
                     <strong>Tanggal Dibayarkan:</strong>
                     <span>${new Date(data.tanggal_dibayarkan).toLocaleDateString('id-ID', { 
@@ -276,26 +281,31 @@ const printPayrollSlip = (payrollData?: PayrollData) => {
                 </div>
                 
                 <!-- Custom Deductions - Always Show -->
-                <div class="deduction-item${data.deductions.custom_1.value === 0 ? '-zero' : ''}">
-                    <span>${data.deductions.custom_1.name || 'Custom 1'}:</span>
+                ${data.deductions.custom_1.name && data.deductions.custom_1.value !== 0 ? `
+                <div class="deduction-item">
+                    <span>${data.deductions.custom_1.name}:</span>
                     <span>${formatCurrency(data.deductions.custom_1.value)}</span>
-                </div>
-                <div class="deduction-item${data.deductions.custom_2.value === 0 ? '-zero' : ''}">
-                    <span>${data.deductions.custom_2.name || 'Custom 2'}:</span>
+                </div>` : ''}
+                ${data.deductions.custom_2.name && data.deductions.custom_2.value !== 0 ? `
+                <div class="deduction-item">
+                    <span>${data.deductions.custom_2.name}:</span>
                     <span>${formatCurrency(data.deductions.custom_2.value)}</span>
-                </div>
-                <div class="deduction-item${data.deductions.custom_3.value === 0 ? '-zero' : ''}">
-                    <span>${data.deductions.custom_3.name || 'Custom 3'}:</span>
+                </div>` : ''}
+                ${data.deductions.custom_3.name && data.deductions.custom_3.value !== 0 ? `
+                <div class="deduction-item">
+                    <span>${data.deductions.custom_3.name}:</span>
                     <span>${formatCurrency(data.deductions.custom_3.value)}</span>
-                </div>
-                <div class="deduction-item${data.deductions.custom_4.value === 0 ? '-zero' : ''}">
-                    <span>${data.deductions.custom_4.name || 'Custom 4'}:</span>
+                </div>` : ''}
+                ${data.deductions.custom_4.name && data.deductions.custom_4.value !== 0 ? `
+                <div class="deduction-item">
+                    <span>${data.deductions.custom_4.name}:</span>
                     <span>${formatCurrency(data.deductions.custom_4.value)}</span>
-                </div>
-                <div class="deduction-item${data.deductions.custom_5.value === 0 ? '-zero' : ''}">
-                    <span>${data.deductions.custom_5.name || 'Custom 5'}:</span>
+                </div>` : ''}
+                ${data.deductions.custom_5.name && data.deductions.custom_5.value !== 0 ? `
+                <div class="deduction-item">
+                    <span>${data.deductions.custom_5.name}:</span>
                     <span>${formatCurrency(data.deductions.custom_5.value)}</span>
-                </div>
+                </div>` : ''}
             </div>
             
             <div class="total-section">

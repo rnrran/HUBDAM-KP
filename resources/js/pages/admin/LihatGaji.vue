@@ -19,6 +19,8 @@ import PayrollDetail from '@/components/PayrollDetail.vue';
 import PayrollLineChart from '@/components/PayrollLineChart.vue';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { router } from '@inertiajs/vue3';
+import ConfirmationModal from '@/components/ConfirmationModal.vue';
 
 interface PayrollRecord {
     id: number;
@@ -139,14 +141,15 @@ watch(selectedTimeRange, () => {
 });
 
 // Explicit handler for filter dropdown changes
-const onFilterChange = (value: string) => {
-    selectedFilter.value = value;
+const onFilterChange = (value: string | number | null) => {
+    const next = value == null ? 'all' : String(value);
+    selectedFilter.value = next;
     const url = new URL(window.location.href);
     url.searchParams.set('page', '1');
-    if (value === 'all') {
+    if (next === 'all') {
         url.searchParams.delete('user');
     } else {
-        url.searchParams.set('user', value);
+        url.searchParams.set('user', next);
     }
     // Update URL without reloading the page
     window.history.replaceState({}, '', url.toString());
@@ -414,6 +417,32 @@ const showDetail = (payroll: PayrollRecord) => {
 const closeDetail = () => {
     showDetailModal.value = false;
     selectedPayroll.value = null;
+};
+
+const showDeleteModal = ref(false);
+const payrollIdToDelete = ref<number | null>(null);
+
+const askDelete = (id: number) => {
+    payrollIdToDelete.value = id;
+    showDeleteModal.value = true;
+};
+
+const cancelDelete = () => {
+    showDeleteModal.value = false;
+    payrollIdToDelete.value = null;
+};
+
+const confirmDelete = () => {
+    if (!payrollIdToDelete.value) return;
+    // @ts-ignore route helper from Ziggy
+    router.delete(route('admin.payroll.destroy', payrollIdToDelete.value));
+    showDeleteModal.value = false;
+    payrollIdToDelete.value = null;
+};
+
+const goToEdit = (id: number) => {
+    // @ts-ignore route helper from Ziggy
+    router.visit(route('admin.payroll.edit', id));
 };
 
 const fetchChartData = async () => {
@@ -779,7 +808,14 @@ const getVisiblePages = (): (number | string)[] => {
                                                 size="sm"
                                             >
                                                 <Info class="h-4 w-4 mr-2" />
-                                                Lihat Detail
+                                                Detail
+                                            </Button>
+                                            <Button
+                                                @click="goToEdit(payroll.id)"
+                                                variant="outline"
+                                                size="sm"
+                                            >
+                                                Edit
                                             </Button>
                                             <Button
                                                 @click="printPayrollSlip(payroll)"
@@ -787,7 +823,14 @@ const getVisiblePages = (): (number | string)[] => {
                                                 size="sm"
                                             >
                                                 <Printer class="h-4 w-4 mr-2" />
-                                                Cetak Struk
+                                                Cetak
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                @click="askDelete(payroll.id)"
+                                            >
+                                                Hapus
                                             </Button>
                                         </div>
                                     </td>
@@ -911,6 +954,17 @@ const getVisiblePages = (): (number | string)[] => {
             :payroll="selectedPayroll"
             :is-open="showDetailModal"
             @close="closeDetail"
+        />
+
+        <!-- Delete Confirmation Modal -->
+        <ConfirmationModal
+            v-model:open="showDeleteModal"
+            title="Konfirmasi Hapus Data"
+            description="Apakah Anda yakin ingin menghapus data payroll ini? Tindakan ini tidak dapat dibatalkan."
+            confirm-text="Hapus"
+            cancel-text="Batal"
+            @confirm="confirmDelete"
+            @cancel="cancelDelete"
         />
     </AppLayout>
 </template>

@@ -140,6 +140,92 @@ class PayrollController extends Controller
     }
 
     /**
+     * Show the form for editing the specified payroll record
+     */
+    public function edit(Payroll $payroll)
+    {
+        $payroll->load('user:id,name,email,pangkat');
+
+        $users = User::select('id', 'name', 'email', 'pangkat')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('admin/EditGaji', [
+            'users' => $users,
+            'payroll' => $payroll,
+        ]);
+    }
+
+    /**
+     * Update the specified payroll record in storage
+     */
+    public function update(Request $request, Payroll $payroll)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'gaji_bersih' => 'required|numeric|min:0',
+            'tanggal_dibayarkan' => 'required|date',
+            'mdr_bws_bri' => 'nullable|numeric|min:0',
+            'btn' => 'nullable|numeric|min:0',
+            'twp' => 'nullable|numeric|min:0',
+            'persit' => 'nullable|numeric|min:0',
+            'ikka_persit' => 'nullable|numeric|min:0',
+            'koperasi' => 'nullable|numeric|min:0',
+            'barak' => 'nullable|numeric|min:0',
+            'kowad' => 'nullable|numeric|min:0',
+            'titipan' => 'nullable|numeric|min:0',
+            'tenes' => 'nullable|numeric|min:0',
+            'remaja' => 'nullable|numeric|min:0',
+            'galon' => 'nullable|numeric|min:0',
+            'sosial' => 'nullable|numeric|min:0',
+            'pns' => 'nullable|numeric|min:0',
+            'bel_wajib_kop' => 'nullable|numeric|min:0',
+            'custom_1_name' => 'nullable|string|max:255',
+            'custom_1_value' => 'nullable|numeric|min:0',
+            'custom_2_name' => 'nullable|string|max:255',
+            'custom_2_value' => 'nullable|numeric|min:0',
+            'custom_3_name' => 'nullable|string|max:255',
+            'custom_3_value' => 'nullable|numeric|min:0',
+            'custom_4_name' => 'nullable|string|max:255',
+            'custom_4_value' => 'nullable|numeric|min:0',
+            'custom_5_name' => 'nullable|string|max:255',
+            'custom_5_value' => 'nullable|numeric|min:0',
+        ]);
+
+        // Recalculate totals
+        $totalDeductions = 0;
+        $deductionFields = [
+            'mdr_bws_bri', 'btn', 'twp', 'persit', 'ikka_persit', 'koperasi',
+            'barak', 'kowad', 'titipan', 'tenes', 'remaja', 'galon', 'sosial',
+            'pns', 'bel_wajib_kop', 'custom_1_value', 'custom_2_value',
+            'custom_3_value', 'custom_4_value', 'custom_5_value'
+        ];
+
+        foreach ($deductionFields as $field) {
+            $totalDeductions += $request->input($field, 0) ?? 0;
+        }
+
+        $netSalary = $request->gaji_bersih - $totalDeductions;
+
+        $data = $request->all();
+        $data['total_deductions'] = $totalDeductions;
+        $data['net_salary'] = $netSalary;
+
+        $payroll->update($data);
+
+        return redirect()->route('admin.payroll.index');
+    }
+
+    /**
+     * Remove the specified payroll record from storage
+     */
+    public function destroy(Payroll $payroll)
+    {
+        $payroll->delete();
+        return redirect()->route('admin.payroll.index');
+    }
+
+    /**
      * Show payroll history for a specific user
      */
     public function userHistory($userId)

@@ -19,6 +19,9 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
     Route::get('/payroll/create', [PayrollController::class, 'create'])->name('payroll.create');
     Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
+    Route::get('/payroll/{payroll}/edit', [PayrollController::class, 'edit'])->name('payroll.edit');
+    Route::put('/payroll/{payroll}', [PayrollController::class, 'update'])->name('payroll.update');
+    Route::delete('/payroll/{payroll}', [PayrollController::class, 'destroy'])->name('payroll.destroy');
     Route::get('/payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
     Route::get('/payroll/user/{userId}', [PayrollController::class, 'userHistory'])->name('payroll.user');
     Route::get('/payroll/user/{userId}/chart/{timeRange?}', [PayrollController::class, 'getUserChartData'])->name('payroll.user.chart');
