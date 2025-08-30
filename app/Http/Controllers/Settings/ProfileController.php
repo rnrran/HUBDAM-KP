@@ -21,6 +21,7 @@ class ProfileController extends Controller
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'user' => $request->user(),
         ]);
     }
 
@@ -29,7 +30,24 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $data = $request->validated();
+        
+        // Handle profile photo upload
+        if ($request->hasFile('profile_photo')) {
+            // Delete old profile photo if exists
+            if ($request->user()->profile_photo) {
+                $oldPhotoPath = storage_path('app/public/' . $request->user()->profile_photo);
+                if (file_exists($oldPhotoPath)) {
+                    unlink($oldPhotoPath);
+                }
+            }
+            
+            // Store new profile photo
+            $photoPath = $request->file('profile_photo')->store('profile-photos', 'public');
+            $data['profile_photo'] = $photoPath;
+        }
+        
+        $request->user()->fill($data);
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;

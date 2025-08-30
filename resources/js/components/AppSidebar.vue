@@ -5,8 +5,10 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { Folder, LayoutGrid } from 'lucide-vue-next';
+import { Folder, LayoutGrid, UserPlus, UserCog, DollarSign, BarChart3 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+import { computed } from 'vue';
+import { useRBAC } from '@/composables/useRBAC';
 
 const mainNavItems: NavItem[] = [
     {
@@ -18,6 +20,29 @@ const mainNavItems: NavItem[] = [
         title: 'Data Master',
         href: '/data-master',
         icon: Folder,
+    },
+];
+
+const adminNavItems: NavItem[] = [
+    {
+        title: 'Buat Akun',
+        href: '/admin/users/create',
+        icon: UserPlus,
+    },
+    {
+        title: 'Edit Akun',
+        href: '/admin/users/edit',
+        icon: UserCog,
+    },
+    {
+        title: 'Input Gaji',
+        href: '/admin/payroll/create',
+        icon: DollarSign,
+    },
+    {
+        title: 'Lihat Gaji',
+        href: '/admin/payroll',
+        icon: BarChart3,
     },
 ];
 
@@ -33,6 +58,24 @@ const footerNavItems: NavItem[] = [
     //     icon: BookOpen,
     // },
 ];
+
+// RBAC-driven filtering per rbac.md
+const { isAdmin, isSupervisor, isPengguna, canInputPayroll, canManageUsers, canViewPayrollList } = useRBAC();
+
+const filteredAdminItems = computed<NavItem[]>(() => {
+    if (isAdmin.value) {
+        return adminNavItems;
+    }
+    if (isSupervisor.value) {
+        // Supervisor: only view payroll, no edit/input/users
+        return adminNavItems.filter((item) => item.title === 'Lihat Gaji');
+    }
+    // Pengguna: no admin section
+    return [];
+});
+
+const shouldShowAdminSection = computed(() => filteredAdminItems.value.length > 0);
+const adminSectionTitle = computed(() => (isAdmin.value ? 'Admin' : isSupervisor.value ? 'Supervisor' : ''));
 </script>
 
 <template>
@@ -51,6 +94,7 @@ const footerNavItems: NavItem[] = [
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
+            <NavMain v-if="shouldShowAdminSection" :items="filteredAdminItems" :title="adminSectionTitle" />
         </SidebarContent>
 
         <SidebarFooter>

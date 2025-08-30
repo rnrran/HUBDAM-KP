@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => 'password',
+            'pangkat' => 'Kapten',
+            'nomor_registrasi' => 'REG-001',
+            'role' => 'admin',
         ]);
     }
 }
