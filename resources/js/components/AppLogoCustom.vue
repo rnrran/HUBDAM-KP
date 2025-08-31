@@ -8,7 +8,7 @@
 export default {
     data() {
         return {
-            logoSrc: require('@/assets/logo-hubdam.jpg'), 
+            logoSrc: require('@/assets/Kapota baru.png'), 
         };
     }
 }
