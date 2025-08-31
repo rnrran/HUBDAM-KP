@@ -16,11 +16,11 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => 'password',
-            'pangkat' => 'Kapten',
-            'nomor_registrasi' => 'REG-001',
+            'name' => 'Admin',
+            'email' => 'admin@hubdamdigital.com',
+            'password' => 'W8Tf14y~y}',
+            'pangkat' => 'PNS',
+            'nomor_registrasi' => 'ADMIN',
             'role' => 'admin',
         ]);
     }

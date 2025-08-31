@@ -47,18 +47,18 @@ const submit = () => {
                         :tabindex="1"
                         autocomplete="email"
                         v-model="form.email"
-                        placeholder="taufik@gmail.com"
+                        placeholder="prajurit@gmail.com"
                     />
                     <InputError :message="form.errors.email" />
                 </div>
 
                 <div class="grid gap-2">
-                    <div class="flex items-center justify-between">
+                    <!-- <div class="flex items-center justify-between">
                         <Label for="password">Kata sandi</Label>
                         <TextLink v-if="canResetPassword" :href="route('password.request')" class="text-sm" :tabindex="5">
                             Lupa kata sandi?
                         </TextLink>
-                    </div>
+                    </div> -->
                     <Input
                         id="password"
                         type="password"
