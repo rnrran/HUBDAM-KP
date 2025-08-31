@@ -45,8 +45,8 @@ const closeModal = () => {
 <template>
     <div class="space-y-6">
         <HeadingSmall title="Hapus Akun" description="Hapus akun Anda dan semua sumber daya yang terkait" />
-        <div class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
-            <div class="relative space-y-0.5 text-red-600 dark:text-red-100">
+        <div class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4">
+            <div class="relative space-y-0.5 text-red-600">
                 <p class="font-medium">Peringatan</p>
                 <p class="text-sm">Silakan berhati-hati, ini tidak dapat dibatalkan.</p>
             </div>

@@ -644,10 +644,10 @@ const getVisiblePages = (): (number | string)[] => {
             </div>
             
             <!-- Custom Date Range (Only for Chart View) -->
-            <div v-if="viewMode === 'chart' && selectedTimeRange === 'custom'" class="flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div v-if="viewMode === 'chart' && selectedTimeRange === 'custom'" class="flex flex-col sm:flex-row gap-4 items-start sm:items-center p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div class="flex items-center space-x-2">
                     <Calendar class="h-4 w-4 text-blue-600" />
-                    <Label for="start-date" class="text-blue-700 dark:text-blue-300">Dari:</Label>
+                    <Label for="start-date" class="text-blue-700">Dari:</Label>
                     <Input
                         id="start-date"
                         v-model="customDateRange.start"
@@ -657,7 +657,7 @@ const getVisiblePages = (): (number | string)[] => {
                 </div>
                 <div class="flex items-center space-x-2">
                     <Calendar class="h-4 w-4 text-blue-600" />
-                    <Label for="end-date" class="text-blue-700 dark:text-blue-300">Sampai:</Label>
+                    <Label for="end-date" class="text-blue-700 ">Sampai:</Label>
                     <Input
                         id="end-date"
                         v-model="customDateRange.end"
@@ -750,29 +750,29 @@ const getVisiblePages = (): (number | string)[] => {
                         <table class="w-full">
                             <thead class="bg-muted/50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Personil
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Gaji Bersih
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Total Potongan
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Gaji Bersih Setelah Potongan
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Tanggal Dibayarkan
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Aksi
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tbody class="divide-y divide-gray-200">
                                 <tr v-if="paginatedPayrolls.length === 0" class="hover:bg-muted/50">
-                                    <td colspan="6" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">
                                         <div class="flex flex-col items-center space-y-2">
                                             <Users class="h-12 w-12 text-gray-300" />
                                             <div class="text-lg font-medium">Tidak ada data</div>
@@ -788,22 +788,22 @@ const getVisiblePages = (): (number | string)[] => {
                                                 <AvatarFallback>{{ getInitials(payroll.user.name) }}</AvatarFallback>
                                             </Avatar>
                                             <div>
-                                                <div class="font-medium text-gray-900 dark:text-gray-100">{{ payroll.user.name }}</div>
-                                                <div class="text-gray-500 dark:text-gray-400">{{ payroll.user.email }}</div>
-                                                <div class="text-xs text-gray-400 dark:text-gray-500">{{ payroll.user.pangkat || 'Tidak ada pangkat' }}</div>
+                                                <div class="font-medium text-gray-900 ">{{ payroll.user.name }}</div>
+                                                <div class="text-gray-500">{{ payroll.user.email }}</div>
+                                                <div class="text-xs text-gray-400 ">{{ payroll.user.pangkat || 'Tidak ada pangkat' }}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 ">
                                         {{ formatCurrency(payroll.gaji_bersih) }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 ">
                                         {{ formatCurrency(payroll.total_deductions) }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 ">
                                         {{ formatCurrency(payroll.net_salary) }}
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ formatDate(payroll.tanggal_dibayarkan) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
