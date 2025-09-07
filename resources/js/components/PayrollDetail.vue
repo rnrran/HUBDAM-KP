@@ -114,9 +114,9 @@ const customDeductions = computed(() => [
 
 <template>
     <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <!-- Header -->
-            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
                 <div class="flex items-center space-x-3">
                     <Receipt class="h-6 w-6 text-blue-600" />
                     <h2 class="text-xl font-semibold">Detail Gaji Personil</h2>
@@ -139,19 +139,19 @@ const customDeductions = computed(() => [
                     <CardContent>
                         <div class="grid md:grid-cols-2 gap-4">
                             <div>
-                                <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Nama</label>
+                                <label class="text-sm font-medium text-gray-600">Nama</label>
                                 <p class="text-lg font-semibold">{{ payroll.user.name }}</p>
                             </div>
                             <div>
-                                <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Email</label>
+                                <label class="text-sm font-medium text-gray-600">Email</label>
                                 <p class="text-base">{{ payroll.user.email }}</p>
                             </div>
                             <div v-if="payroll.user.pangkat">
-                                <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Pangkat</label>
+                                <label class="text-sm font-medium text-gray-600">Pangkat</label>
                                 <p class="text-base">{{ payroll.user.pangkat }}</p>
                             </div>
                             <div>
-                                <label class="text-sm font-medium text-gray-600 dark:text-gray-400">Tanggal Dibayarkan</label>
+                                <label class="text-sm font-medium text-gray-600">Tanggal Dibayarkan</label>
                                 <p class="text-base">{{ formatDate(payroll.tanggal_dibayarkan) }}</p>
                             </div>
                         </div>
@@ -168,21 +168,21 @@ const customDeductions = computed(() => [
                     </CardHeader>
                     <CardContent>
                         <div class="space-y-4">
-                            <div class="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+                            <div class="flex justify-between items-center py-3 border-b border-gray-200">
                                 <span class="font-medium text-base">Gaji Bersih:</span>
                                 <span class="text-lg font-semibold text-green-600">
                                     {{ formatCurrency(payroll.gaji_bersih) }}
                                 </span>
                             </div>
-                            <div class="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+                            <div class="flex justify-between items-center py-3 border-b border-gray-200">
                                 <span class="font-medium text-base">Total Potongan:</span>
                                 <span class="text-lg font-semibold text-red-600">
                                     {{ formatCurrency(payroll.total_deductions) }}
                                 </span>
                             </div>
-                            <div class="flex justify-between items-center py-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 rounded-lg px-6 border border-blue-200 dark:border-blue-800">
-                                <span class="font-bold text-lg text-blue-900 dark:text-blue-100">Gaji Bersih Setelah Potongan:</span>
-                                <span class="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                            <div class="flex justify-between items-center py-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg px-6 border border-blue-200">
+                                <span class="font-bold text-lg text-blue-900">Gaji Bersih Setelah Potongan:</span>
+                                <span class="text-2xl font-bold text-blue-700">
                                     {{ formatCurrency(payroll.net_salary) }}
                                 </span>
                             </div>
@@ -223,7 +223,7 @@ const customDeductions = computed(() => [
                 </Card>
 
                 <!-- Footer -->
-                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                     <Button variant="outline" @click="closeModal">
                         Tutup
                     </Button>

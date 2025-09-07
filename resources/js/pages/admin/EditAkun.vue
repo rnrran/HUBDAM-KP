@@ -142,7 +142,7 @@ const displayedPhotoUrl = computed(() => {
           <CardDescription>Pilih pengguna yang akan diedit.</CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div class="grid gap-2 max-w-md">
+          <div class="grid gap-2">
             <Label for="user">Pengguna</Label>
             <Select v-model="selectedUserId">
               <SelectTrigger>

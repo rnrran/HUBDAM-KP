@@ -526,9 +526,9 @@ const printPayrollSlip = () => {
                                     {{ formatCurrency(totalDeductions) }}
                                 </span>
                             </div>
-                            <div class="flex justify-between items-center py-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 rounded-lg px-6 border border-blue-200 dark:border-blue-800">
-                                <span class="font-bold text-lg text-blue-900 dark:text-blue-100">Gaji Bersih Setelah Potongan:</span>
-                                <span class="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                            <div class="flex justify-between items-center py-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg px-6 border border-blue-200">
+                                <span class="font-bold text-lg text-blue-900">Gaji Bersih Setelah Potongan:</span>
+                                <span class="text-2xl font-bold text-blue-700">
                                     {{ formatCurrency(netSalary) }}
                                 </span>
                             </div>
