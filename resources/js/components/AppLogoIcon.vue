@@ -13,7 +13,7 @@ defineProps<Props>();
 </script>
 
 <template>
-    <img src="../assets/Kapota baru.png" alt="HUBDAM Logo" class="h-[65px] w-max-[700px] w-[65px]" v-bind="$attrs" />
+    <img src="../assets/Kapota baru.png" alt="HUBDAM Logo" class="h-max w-max-[700px] w-[65px]" v-bind="$attrs" />
     <!-- <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 42" :class="className" v-bind="$attrs">
         <path
             fill="currentColor"

@@ -16,11 +16,6 @@ const mainNavItems: NavItem[] = [
         href: '/dashboard',
         icon: LayoutGrid,
     },
-    {
-        title: 'Data Master',
-        href: '/data-master',
-        icon: Folder,
-    },
 ];
 
 const adminNavItems: NavItem[] = [

@@ -18,25 +18,25 @@ const getIcon = (type: string) => {
 const getColorClasses = (type: string) => {
     switch (type) {
         case 'success': 
-            return 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-100';
+            return 'bg-green-100 border-green-300 text-green-900   ';
         case 'error': 
-            return 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-100';
+            return 'bg-red-100 border-red-300 text-red-900   ';
         case 'warning': 
-            return 'bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-100';
+            return 'bg-yellow-100 border-yellow-300 text-yellow-900   ';
         case 'info': 
-            return 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-100';
+            return 'bg-blue-100 border-blue-300 text-blue-900   ';
         default: 
-            return 'bg-gray-50 border-gray-200 text-gray-800 dark:bg-gray-900/20 dark:border-gray-800 dark:text-gray-100';
+            return 'bg-gray-100 border-gray-300 text-gray-900   ';
     }
 };
 
 const getIconColorClass = (type: string) => {
     switch (type) {
-        case 'success': return 'text-green-600 dark:text-green-400';
-        case 'error': return 'text-red-600 dark:text-red-400';
-        case 'warning': return 'text-yellow-600 dark:text-yellow-400';
-        case 'info': return 'text-blue-600 dark:text-blue-400';
-        default: return 'text-gray-600 dark:text-gray-400';
+        case 'success': return 'text-green-700 ';
+        case 'error': return 'text-red-700 ';
+        case 'warning': return 'text-yellow-700 ';
+        case 'info': return 'text-blue-700 ';
+        default: return 'text-gray-700 ';
     }
 };
 </script>
@@ -47,8 +47,8 @@ const getIconColorClass = (type: string) => {
             v-for="notification in notifications"
             :key="notification.id"
             :class="[
-                'max-w-md w-full rounded-lg border p-4 shadow-lg transition-all duration-300 ease-in-out',
-                'animate-in slide-in-from-right-full',
+                'max-w-md w-full rounded-lg border-2 p-4 shadow-xl transition-all duration-300 ease-in-out',
+                'animate-in slide-in-from-right-full backdrop-blur-sm',
                 getColorClasses(notification.type)
             ]"
         >

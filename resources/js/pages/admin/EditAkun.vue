@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { ref, watch, computed, onMounted } from 'vue';
+import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import NotificationContainer from '@/components/NotificationContainer.vue';
@@ -49,6 +49,18 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const selectedUserId = ref<string | null>(props.selectedUser ? String(props.selectedUser.id) : null);
+
+// Set selectedUserId dari URL jika ada parameter user di URL
+onMounted(() => {
+  // Ambil ID dari path URL (format: /admin/users/{id}/edit)
+  const pathSegments = window.location.pathname.split('/');
+  const userIdFromUrl = pathSegments[pathSegments.length - 2]; // Ambil segment sebelum 'edit'
+  
+  // Jika ada ID di URL dan ID tersebut valid (bukan 'edit' atau kosong)
+  if (userIdFromUrl && userIdFromUrl !== 'edit' && !isNaN(Number(userIdFromUrl))) {
+    selectedUserId.value = userIdFromUrl;
+  }
+});
 const showConfirmModal = ref(false);
 const showImageCropper = ref(false);
 const selectedImageFile = ref<File | null>(null);
@@ -79,6 +91,18 @@ watch(() => props.selectedUser, (u) => {
 });
 
 const canSubmit = computed(() => !!selectedUserId.value && !!form.name && !!form.email);
+
+// Computed untuk placeholder dropdown yang dinamis
+const userSelectPlaceholder = computed(() => {
+  if (!selectedUserId.value) return 'Pilih Pengguna';
+  
+  const selectedUser = props.users?.find(u => String(u.id) === selectedUserId.value);
+  if (selectedUser) {
+    return `${selectedUser.name} — ${selectedUser.email}`;
+  }
+  
+  return 'Pilih Pengguna';
+});
 
 watch(selectedUserId, (id) => {
   if (!id) return;
@@ -146,7 +170,7 @@ const displayedPhotoUrl = computed(() => {
             <Label for="user">Pengguna</Label>
             <Select v-model="selectedUserId">
               <SelectTrigger>
-                <SelectValue :placeholder="'Pilih Pengguna'" />
+                <SelectValue :placeholder="userSelectPlaceholder" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem :value="null as any">Pilih Pengguna</SelectItem>

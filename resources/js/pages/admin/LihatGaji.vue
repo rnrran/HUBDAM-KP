@@ -21,7 +21,9 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { router } from '@inertiajs/vue3';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
+import NotificationContainer from '@/components/NotificationContainer.vue';
 import { useRBAC } from '@/composables/useRBAC';
+import { useNotifications } from '@/composables/useNotifications';
 
 interface PayrollRecord {
     id: number;
@@ -327,6 +329,9 @@ const getInitials = (name: string) => {
 // RBAC guards for actions
 const { canEditPayroll, canDeletePayroll } = useRBAC();
 
+// Notifications
+const { success, error } = useNotifications();
+
 const printPayrollSlip = (payroll: PayrollRecord) => {
     // Create payroll data structure for the printer component
     const payrollData = {
@@ -439,10 +444,20 @@ const cancelDelete = () => {
 const confirmDelete = () => {
     if (!canDeletePayroll.value) return;
     if (!payrollIdToDelete.value) return;
+    
     // @ts-ignore route helper from Ziggy
-    router.delete(route('admin.payroll.destroy', payrollIdToDelete.value));
-    showDeleteModal.value = false;
-    payrollIdToDelete.value = null;
+    router.delete(route('admin.payroll.destroy', payrollIdToDelete.value), {
+        onSuccess: () => {
+            success('Berhasil!', 'Data payroll berhasil dihapus.');
+            showDeleteModal.value = false;
+            payrollIdToDelete.value = null;
+        },
+        onError: () => {
+            error('Gagal!', 'Tidak dapat menghapus data payroll.');
+            showDeleteModal.value = false;
+            payrollIdToDelete.value = null;
+        }
+    });
 };
 
 const goToEdit = (id: number) => {
@@ -623,18 +638,18 @@ const getVisiblePages = (): (number | string)[] => {
                 <!-- View Mode Toggle -->
                 <div class="flex items-center space-x-2">
                     <Button
-                        variant="outline"
+                        :variant="viewMode === 'table' ? 'default' : 'outline'"
                         size="sm"
-                        :class="{ 'bg-primary text-primary-foreground': viewMode === 'table' }"
+                        :class="viewMode === 'table' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-muted'"
                         @click="viewMode = 'table'"
                     >
                         <Eye class="h-4 w-4 mr-2" />
                         Tabel
                     </Button>
                     <Button
-                        variant="outline"
+                        :variant="viewMode === 'chart' ? 'default' : 'outline'"
                         size="sm"
-                        :class="{ 'bg-primary text-primary-foreground': viewMode === 'chart' }"
+                        :class="viewMode === 'chart' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-muted'"
                         @click="viewMode = 'chart'"
                     >
                         <BarChart3 class="h-4 w-4 mr-2" />
@@ -681,7 +696,7 @@ const getVisiblePages = (): (number | string)[] => {
             </div>
 
             <!-- Chart View -->
-            <Card v-if="viewMode === 'chart'" class="w-full">
+            <Card v-if="viewMode === 'chart'" class="mx-6">
                 <CardHeader>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
@@ -730,7 +745,7 @@ const getVisiblePages = (): (number | string)[] => {
             </Card>
 
             <!-- Table View -->
-            <Card v-if="viewMode === 'table'" class="w-full">
+            <Card v-if="viewMode === 'table'" class="mx-6">
                 <CardHeader>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-2">
@@ -886,9 +901,9 @@ const getVisiblePages = (): (number | string)[] => {
                                 <template v-for="page in getVisiblePages()" :key="page">
                                     <Button
                                         v-if="typeof page === 'number'"
-                                        variant="outline"
+                                        :variant="page === props.payrolls.current_page ? 'default' : 'outline'"
                                         size="sm"
-                                        :class="{ 'bg-primary text-primary-foreground': page === props.payrolls.current_page }"
+                                        :class="page === props.payrolls.current_page ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-muted'"
                                         @click="goToPage(page)"
                                         class="px-3 py-2 min-w-[40px]"
                                     >
@@ -974,5 +989,8 @@ const getVisiblePages = (): (number | string)[] => {
             @confirm="confirmDelete"
             @cancel="cancelDelete"
         />
+
+        <!-- Notification Container -->
+        <NotificationContainer />
     </AppLayout>
 </template>
