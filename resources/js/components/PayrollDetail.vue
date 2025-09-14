@@ -103,13 +103,21 @@ const fixedDeductions = computed(() => [
     { name: 'BEL. WAJIB KOP', value: props.payroll.bel_wajib_kop },
 ]);
 
-const customDeductions = computed(() => [
-    { name: props.payroll.custom_1_name || 'Custom 1', value: props.payroll.custom_1_value },
-    { name: props.payroll.custom_2_name || 'Custom 2', value: props.payroll.custom_2_value },
-    { name: props.payroll.custom_3_name || 'Custom 3', value: props.payroll.custom_3_value },
-    { name: props.payroll.custom_4_name || 'Custom 4', value: props.payroll.custom_4_value },
-    { name: props.payroll.custom_5_name || 'Custom 5', value: props.payroll.custom_5_value },
-]);
+const customDeductions = computed(() => {
+    const deductions = [
+        { name: props.payroll.custom_1_name, value: props.payroll.custom_1_value },
+        { name: props.payroll.custom_2_name, value: props.payroll.custom_2_value },
+        { name: props.payroll.custom_3_name, value: props.payroll.custom_3_value },
+        { name: props.payroll.custom_4_name, value: props.payroll.custom_4_value },
+        { name: props.payroll.custom_5_name, value: props.payroll.custom_5_value },
+    ];
+    
+    // Only return deductions that have both a name and a value > 0
+    return deductions.filter(deduction => 
+        deduction.name && deduction.name.trim() !== '' && 
+        deduction.value && deduction.value > 0
+    );
+});
 </script>
 
 <template>
@@ -207,7 +215,7 @@ const customDeductions = computed(() => [
                 </Card>
 
                 <!-- Custom Deductions -->
-                <Card v-if="customDeductions.length > 0" class="space-y-3">
+                <Card v-if="customDeductions.length > 0">
                     <CardHeader>
                         <CardTitle>Potongan Kustom</CardTitle>
                         <CardDescription>Potongan gaji tambahan yang telah ditentukan</CardDescription>
@@ -216,7 +224,7 @@ const customDeductions = computed(() => [
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div v-for="deduction in customDeductions" :key="deduction.name" class="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
                                 <span class="font-medium text-sm">{{ deduction.name }}</span>
-                                <span class="text-sm font-mono">{{ formatCurrency(deduction.value || 0) }}</span>
+                                <span class="text-sm font-mono">{{ formatCurrency(deduction.value) }}</span>
                             </div>
                         </div>
                     </CardContent>

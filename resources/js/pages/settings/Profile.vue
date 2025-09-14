@@ -150,7 +150,7 @@ const getProfilePhotoUrl = () => {
 
                     <div class="grid gap-2">
                         <Label for="pangkat">Pangkat</Label>
-                        <Input id="pangkat" class="mt-1 block w-full" v-model="form.pangkat" placeholder="Masukkan pangkat" />
+                        <Input id="pangkat" class="mt-1 block w-full" v-model="form.pangkat" placeholder="Masukkan pangkat" disabled/>
                         <InputError class="mt-2" :message="form.errors.pangkat" />
                     </div>
 
@@ -162,7 +162,7 @@ const getProfilePhotoUrl = () => {
 
                     <div class="grid gap-2">
                         <Label for="role">Role</Label>
-                        <Select v-model="form.role" :value="form.role">
+                        <Select v-model="form.role" :value="form.role" disabled>
                             <SelectTrigger>
                                 <SelectValue :placeholder="form.role || 'Pilih role'" />
                             </SelectTrigger>

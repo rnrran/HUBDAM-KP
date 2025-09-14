@@ -5,9 +5,10 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import { Card, CardHeader, CardDescription, CardContent } from '@/components/ui/card';
 import PayrollLineChart from '@/components/PayrollLineChart.vue';
-import { Eye, BarChart3, Users, TrendingUp, Printer, Calendar } from 'lucide-vue-next';
+import { Eye, BarChart3, Users, TrendingUp, Printer, Calendar, Info } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import PayrollSlipPrinter from '@/components/PayrollSlipPrinter.vue';
+import PayrollDetail from '@/components/PayrollDetail.vue';
 import { 
   Select,
   SelectContent,
@@ -19,9 +20,41 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface ChartPoint { month: string; gaji_bersih: number; total_potongan: number; gaji_bersih_setelah_potongan: number; date?: string }
-interface UserLite { id: number; name: string; email: string; pangkat?: string | null; nomor_registrasi?: string | null }
+interface UserLite { id: number; name: string; email: string; pangkat: string | null; nomor_registrasi?: string | null }
 interface PayrollRecord {
-  id: number; user_id: number; gaji_bersih: number; total_deductions: number; net_salary: number; tanggal_dibayarkan: string;
+  id: number; 
+  user_id: number; 
+  gaji_bersih: number; 
+  total_deductions: number; 
+  net_salary: number; 
+  tanggal_dibayarkan: string;
+  mdr_bws_bri: number | null;
+  btn: number | null;
+  twp: number | null;
+  persit: number | null;
+  ikka_persit: number | null;
+  koperasi: number | null;
+  barak: number | null;
+  kowad: number | null;
+  titipan: number | null;
+  tenes: number | null;
+  remaja: number | null;
+  galon: number | null;
+  sosial: number | null;
+  pns: number | null;
+  bel_wajib_kop: number | null;
+  custom_1_name: string | null;
+  custom_1_value: number | null;
+  custom_2_name: string | null;
+  custom_2_value: number | null;
+  custom_3_name: string | null;
+  custom_3_value: number | null;
+  custom_4_name: string | null;
+  custom_4_value: number | null;
+  custom_5_name: string | null;
+  custom_5_value: number | null;
+  created_at: string;
+  updated_at: string;
   user: UserLite;
 }
 interface Props {
@@ -37,6 +70,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const payrollSlipPrinterRef = ref<InstanceType<typeof PayrollSlipPrinter>>();
+const showDetailModal = ref(false);
+const selectedPayroll = ref<PayrollRecord | null>(null);
 
 const selectedTimeRange = ref<'4'|'8'|'12'|'6'|'12m'|'24'|'all'|'custom'>('all');
 const customDateRange = ref<{ start: string; end: string }>({ start: '', end: '' });
@@ -114,10 +149,38 @@ const printRow = (row: PayrollRecord) => {
     total_deductions: row.total_deductions,
     net_salary: row.net_salary,
     deductions: {
-      mdr_bws_bri: 0, btn: 0, twp: 0, persit: 0, ikka_persit: 0, koperasi: 0, barak: 0, kowad: 0, titipan: 0, tenes: 0, remaja: 0, galon: 0, sosial: 0, pns: 0, bel_wajib_kop: 0,
-      custom_1: { name: '', value: 0 }, custom_2: { name: '', value: 0 }, custom_3: { name: '', value: 0 }, custom_4: { name: '', value: 0 }, custom_5: { name: '', value: 0 }
+      mdr_bws_bri: row.mdr_bws_bri || 0, 
+      btn: row.btn || 0, 
+      twp: row.twp || 0, 
+      persit: row.persit || 0, 
+      ikka_persit: row.ikka_persit || 0, 
+      koperasi: row.koperasi || 0, 
+      barak: row.barak || 0, 
+      kowad: row.kowad || 0, 
+      titipan: row.titipan || 0, 
+      tenes: row.tenes || 0, 
+      remaja: row.remaja || 0, 
+      galon: row.galon || 0, 
+      sosial: row.sosial || 0, 
+      pns: row.pns || 0, 
+      bel_wajib_kop: row.bel_wajib_kop || 0,
+      custom_1: { name: row.custom_1_name || '', value: row.custom_1_value || 0 }, 
+      custom_2: { name: row.custom_2_name || '', value: row.custom_2_value || 0 }, 
+      custom_3: { name: row.custom_3_name || '', value: row.custom_3_value || 0 }, 
+      custom_4: { name: row.custom_4_name || '', value: row.custom_4_value || 0 }, 
+      custom_5: { name: row.custom_5_name || '', value: row.custom_5_value || 0 }
     }
   });
+};
+
+const showDetail = (payroll: PayrollRecord) => {
+  selectedPayroll.value = payroll;
+  showDetailModal.value = true;
+};
+
+const closeDetail = () => {
+  showDetailModal.value = false;
+  selectedPayroll.value = null;
 };
 
 </script>
@@ -229,7 +292,16 @@ const printRow = (row: PayrollRecord) => {
                   <td class="px-6 py-4 whitespace-nowrap text-sm">{{ formatCurrency(row.net_salary) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm">{{ formatDate(row.tanggal_dibayarkan) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <Button variant="outline" size="sm" @click="printRow(row)"><Printer class="h-4 w-4 mr-2" />Cetak Struk</Button>
+                    <div class="flex items-center space-x-2">
+                      <Button variant="outline" size="sm" @click="showDetail(row)">
+                        <Info class="h-4 w-4 mr-2" />
+                        Detail
+                      </Button>
+                      <Button variant="outline" size="sm" @click="printRow(row)">
+                        <Printer class="h-4 w-4 mr-2" />
+                        Cetak Struk
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -255,6 +327,14 @@ const printRow = (row: PayrollRecord) => {
         net_salary: 0,
         deductions: { mdr_bws_bri: 0, btn: 0, twp: 0, persit: 0, ikka_persit: 0, koperasi: 0, barak: 0, kowad: 0, titipan: 0, tenes: 0, remaja: 0, galon: 0, sosial: 0, pns: 0, bel_wajib_kop: 0, custom_1: { name: '', value: 0 }, custom_2: { name: '', value: 0 }, custom_3: { name: '', value: 0 }, custom_4: { name: '', value: 0 }, custom_5: { name: '', value: 0 } }
       }" />
+
+      <!-- Payroll Detail Modal -->
+      <PayrollDetail
+        v-if="selectedPayroll"
+        :payroll="selectedPayroll"
+        :is-open="showDetailModal"
+        @close="closeDetail"
+      />
     </div>
   </AppLayout>
 </template>
