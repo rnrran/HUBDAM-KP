@@ -196,8 +196,8 @@ const displayedPhotoUrl = computed(() => {
           </div>
 
           <div class="grid gap-2">
-            <Label for="email">Email *</Label>
-            <Input id="email" type="email" v-model="form.email" placeholder="contoh@email.com" required />
+            <Label for="email">Email</Label>
+            <Input id="email" type="email" v-model="form.email" placeholder="contoh@email.com (opsional)" />
             <InputError :message="form.errors.email" />
           </div>
 
@@ -223,8 +223,8 @@ const displayedPhotoUrl = computed(() => {
           </div>
 
           <div class="grid gap-2">
-            <Label for="nomor_registrasi">Nomor Registrasi</Label>
-            <Input id="nomor_registrasi" v-model="form.nomor_registrasi" placeholder="Masukkan nomor registrasi" />
+            <Label for="nomor_registrasi">Nomor Registrasi *</Label>
+            <Input id="nomor_registrasi" v-model="form.nomor_registrasi" placeholder="Masukkan nomor registrasi" required />
             <InputError :message="form.errors.nomor_registrasi" />
           </div>
 

@@ -64,15 +64,15 @@ const form = useForm({
 });
 
 const canProceedToStep2 = computed(() => {
-    return form.name && form.email && form.password;
+    return form.name && form.password;
 });
 
 const canCreateAccount = computed(() => {
-    return canProceedToStep2.value;
+    return form.name && form.password && form.nomor_registrasi;
 });
 
 const stepTwoButtonText = computed(() => {
-    if (form.pangkat || form.nomor_registrasi) {
+    if (form.pangkat || form.email) {
         return 'Buat Akun';
     }
     return 'Lewati sekarang, buat akun';
@@ -81,8 +81,9 @@ const stepTwoButtonText = computed(() => {
 const generatePassword = async () => {
     generatingPassword.value = true;
     try {
-        const response = await axios.get(route('admin.generate.password'));
-        form.password = response.data.password;
+        // Generate password using format: ${nama}123
+        const baseName = form.name.toLowerCase().replace(/\s+/g, '');
+        form.password = `${baseName}123`;
     } catch (error) {
         console.error('Error generating password:', error);
     } finally {
@@ -207,6 +208,17 @@ const getProfilePhotoPreview = () => {
                 </CardHeader>
                 <CardContent class="space-y-6">
                     <div class="grid gap-2">
+                        <Label for="nomor_registrasi">Nomor Registrasi *</Label>
+                        <Input 
+                            id="nomor_registrasi" 
+                            v-model="form.nomor_registrasi" 
+                            placeholder="Masukkan nomor registrasi"
+                            required
+                        />
+                        <InputError :message="form.errors.nomor_registrasi" />
+                    </div>
+                    
+                    <div class="grid gap-2">
                         <Label for="name">Nama Lengkap *</Label>
                         <Input 
                             id="name" 
@@ -217,17 +229,6 @@ const getProfilePhotoPreview = () => {
                         <InputError :message="form.errors.name" />
                     </div>
 
-                    <div class="grid gap-2">
-                        <Label for="email">Email *</Label>
-                        <Input 
-                            id="email" 
-                            type="email"
-                            v-model="form.email" 
-                            placeholder="contoh@email.com"
-                            required
-                        />
-                        <InputError :message="form.errors.email" />
-                    </div>
 
                     <div class="grid gap-2">
                         <Label for="password">Password *</Label>
@@ -308,13 +309,14 @@ const getProfilePhotoPreview = () => {
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="nomor_registrasi">Nomor Registrasi</Label>
+                        <Label for="email">Email</Label>
                         <Input 
-                            id="nomor_registrasi" 
-                            v-model="form.nomor_registrasi" 
-                            placeholder="Masukkan nomor registrasi"
+                            id="email" 
+                            type="email"
+                            v-model="form.email" 
+                            placeholder="contoh@email.com (opsional)"
                         />
-                        <InputError :message="form.errors.nomor_registrasi" />
+                        <InputError :message="form.errors.email" />
                     </div>
 
                     <div class="grid gap-2">

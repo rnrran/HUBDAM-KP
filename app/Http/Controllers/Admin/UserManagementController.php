@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
-use Illuminate\Support\Str;
 
 class UserManagementController extends Controller
 {
@@ -44,10 +43,10 @@ class UserManagementController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => 'nullable|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'string', 'min:8'],
             'pangkat' => 'nullable|string|max:255',
-            'nomor_registrasi' => 'nullable|string|max:255',
+            'nomor_registrasi' => 'required|string|max:255',
             'role' => 'required|string|in:admin,supervisor,pengguna',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
@@ -115,10 +114,10 @@ class UserManagementController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'nullable|string|lowercase|email|max:255|unique:users,email,' . $user->id,
             'password' => ['nullable', 'string', 'min:8'],
             'pangkat' => 'nullable|string|max:255',
-            'nomor_registrasi' => 'nullable|string|max:255',
+            'nomor_registrasi' => 'required|string|max:255',
             'role' => 'required|string|in:admin,supervisor,pengguna',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
@@ -164,17 +163,6 @@ class UserManagementController extends Controller
         return response()->json($user);
     }
 
-    /**
-     * Generate a random password
-     */
-    public function generatePassword()
-    {
-        $password = Str::random(12);
-        
-        return response()->json([
-            'password' => $password
-        ]);
-    }
 
     /**
      * Get pangkat options
