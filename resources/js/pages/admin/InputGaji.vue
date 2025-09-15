@@ -17,7 +17,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import InputError from '@/components/InputError.vue';
-import { LoaderCircle, DollarSign, Calendar, User, Printer } from 'lucide-vue-next';
+import { LoaderCircle, DollarSign, Calendar, User, Printer, Search, X } from 'lucide-vue-next';
 import { type BreadcrumbItem } from '@/types';
 import PayrollSlipPrinter from '@/components/PayrollSlipPrinter.vue';
 
@@ -26,6 +26,7 @@ interface User {
     name: string;
     email: string;
     pangkat?: string;
+    nomor_registrasi?: string;
 }
 
 interface Props {
@@ -49,6 +50,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const showConfirmModal = ref(false);
 const payrollSlipPrinterRef = ref<InstanceType<typeof PayrollSlipPrinter>>();
+const searchQuery = ref('');
+const isSearchOpen = ref(false);
 
 const form = useForm({
     user_id: '',
@@ -87,6 +90,17 @@ const selectedUser = computed(() => {
     return props.users.find(user => user.id.toString() === form.user_id);
 });
 
+// Computed untuk placeholder dropdown yang dinamis
+const userSelectPlaceholder = computed(() => {
+    if (!selectedUser.value) return 'Pilih personil...';
+    
+    const user = selectedUser.value;
+    if (user.nomor_registrasi) {
+        return `${user.name} - ${user.nomor_registrasi}`;
+    }
+    return user.name;
+});
+
 const canSubmit = computed(() => {
     return form.user_id && form.gaji_bersih && !form.processing;
 });
@@ -94,6 +108,27 @@ const canSubmit = computed(() => {
 const isUserSelected = computed(() => {
     return !!form.user_id;
 });
+
+// Filter users based on search query
+const filteredUsers = computed(() => {
+    if (!searchQuery.value.trim()) {
+        return props.users || [];
+    }
+    
+    const query = searchQuery.value.toLowerCase().trim();
+    return (props.users || []).filter(user => 
+        user.name.toLowerCase().includes(query) ||
+        (user.email && user.email.toLowerCase().includes(query)) ||
+        (user.pangkat && user.pangkat.toLowerCase().includes(query)) ||
+        (user.nomor_registrasi && user.nomor_registrasi.toLowerCase().includes(query))
+    );
+});
+
+// Clear search function
+const clearSearch = () => {
+    searchQuery.value = '';
+    isSearchOpen.value = false;
+};
 
 // Calculate total deductions
 const totalDeductions = computed(() => {
@@ -227,24 +262,58 @@ const printPayrollSlip = () => {
                 <CardContent>
                     <div class="grid gap-2">
                         <Label for="user_id">Personil *</Label>
-                        <Select v-model="form.user_id" required>
-                            <SelectTrigger>
-                                <SelectValue :placeholder="selectedUser ? selectedUser.name : 'Pilih personil...'" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem 
-                                    v-for="user in props.users" 
-                                    :key="user.id" 
-                                    :value="user.id.toString()"
-                                >
-                                    <div class="flex flex-col">
-                                        <span class="font-medium">{{ user.name }}</span>
-                                        <span class="text-sm text-muted-foreground">{{ user.email }}</span>
-                                        <span v-if="user.pangkat" class="text-xs text-muted-foreground">{{ user.pangkat }}</span>
+                        <div class="relative">
+                            <Select v-model="form.user_id" required @open-change="isSearchOpen = $event">
+                                <SelectTrigger>
+                                    <SelectValue :placeholder="userSelectPlaceholder" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <!-- Search Input -->
+                                    <div class="p-2 border-b border-border">
+                                        <div class="relative">
+                                            <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                v-model="searchQuery"
+                                                placeholder="Cari personil..."
+                                                class="pl-8 pr-8 h-8"
+                                                @click.stop
+                                            />
+                                            <Button
+                                                v-if="searchQuery"
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                class="absolute right-1 top-1 h-6 w-6 p-0"
+                                                @click="clearSearch"
+                                            >
+                                                <X class="h-3 w-3" />
+                                            </Button>
+                                        </div>
                                     </div>
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                                    
+                                    <!-- User List -->
+                                    <div class="max-h-60 overflow-y-auto">
+                                        <SelectItem 
+                                            v-for="user in filteredUsers" 
+                                            :key="user.id" 
+                                            :value="user.id.toString()"
+                                            class="cursor-pointer"
+                                        >
+                                            <div class="flex flex-col">
+                                                <span class="font-medium">{{ user.name }}{{ user.nomor_registrasi ? ` - ${user.nomor_registrasi}` : '' }}</span>
+                                                <span class="text-sm text-muted-foreground">{{ user.email }}</span>
+                                                <span v-if="user.pangkat" class="text-xs text-muted-foreground">{{ user.pangkat }}</span>
+                                            </div>
+                                        </SelectItem>
+                                        
+                                        <!-- No results message -->
+                                        <div v-if="filteredUsers.length === 0 && searchQuery" class="p-3 text-center text-sm text-muted-foreground">
+                                            Tidak ada personil yang ditemukan
+                                        </div>
+                                    </div>
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <InputError :message="form.errors.user_id" />
                         <p class="text-xs text-muted-foreground mt-2">
                             Setelah memilih personil dan mengisi data gaji, Anda dapat mencetak struk gaji menggunakan tombol "Cetak Struk".

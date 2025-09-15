@@ -20,6 +20,7 @@ import {
 import InputError from '@/components/InputError.vue';
 import pangkatData from '@/data/pangkat.json';
 import type { BreadcrumbItem } from '@/types';
+import { Search, X } from 'lucide-vue-next';
 
 interface UserOption {
   id: number;
@@ -49,6 +50,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const selectedUserId = ref<string | null>(props.selectedUser ? String(props.selectedUser.id) : null);
+const searchQuery = ref('');
+const isSearchOpen = ref(false);
 
 // Set selectedUserId dari URL jika ada parameter user di URL
 onMounted(() => {
@@ -90,7 +93,7 @@ watch(() => props.selectedUser, (u) => {
   selectedImageName.value = '';
 });
 
-const canSubmit = computed(() => !!selectedUserId.value && !!form.name && !!form.email);
+const canSubmit = computed(() => !!selectedUserId.value && !!form.name && !!form.nomor_registrasi);
 
 // Computed untuk placeholder dropdown yang dinamis
 const userSelectPlaceholder = computed(() => {
@@ -103,6 +106,27 @@ const userSelectPlaceholder = computed(() => {
   
   return 'Pilih Pengguna';
 });
+
+// Filter users based on search query
+const filteredUsers = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return props.users || [];
+  }
+  
+  const query = searchQuery.value.toLowerCase().trim();
+  return (props.users || []).filter(user => 
+    user.name.toLowerCase().includes(query) ||
+    (user.nomor_registrasi && user.nomor_registrasi.toLowerCase().includes(query)) ||
+    (user.email && user.email.toLowerCase().includes(query)) ||
+    (user.pangkat && user.pangkat.toLowerCase().includes(query))
+  );
+});
+
+// Clear search function
+const clearSearch = () => {
+  searchQuery.value = '';
+  isSearchOpen.value = false;
+};
 
 watch(selectedUserId, (id) => {
   if (!id) return;
@@ -168,17 +192,60 @@ const displayedPhotoUrl = computed(() => {
         <CardContent class="space-y-4">
           <div class="grid gap-2">
             <Label for="user">Pengguna</Label>
-            <Select v-model="selectedUserId">
-              <SelectTrigger>
-                <SelectValue :placeholder="userSelectPlaceholder" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem :value="null as any">Pilih Pengguna</SelectItem>
-                <SelectItem v-for="u in (props.users || [])" :key="u.id" :value="String(u.id)">
-                  {{ u.name }} — {{ u.nomor_registrasi }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <div class="relative">
+              <Select v-model="selectedUserId" @open-change="isSearchOpen = $event">
+                <SelectTrigger>
+                  <SelectValue :placeholder="userSelectPlaceholder" />
+                </SelectTrigger>
+                <SelectContent>
+                  <!-- Search Input -->
+                  <div class="p-2 border-b border-border">
+                    <div class="relative">
+                      <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        v-model="searchQuery"
+                        placeholder="Cari pengguna..."
+                        class="pl-8 pr-8 h-8"
+                        @click.stop
+                      />
+                      <Button
+                        v-if="searchQuery"
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        class="absolute right-1 top-1 h-6 w-6 p-0"
+                        @click="clearSearch"
+                      >
+                        <X class="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <!-- User List -->
+                  <div class="max-h-60 overflow-y-auto">
+                    <SelectItem :value="null as any">Pilih Pengguna</SelectItem>
+                    <SelectItem 
+                      v-for="u in filteredUsers" 
+                      :key="u.id" 
+                      :value="String(u.id)"
+                      class="cursor-pointer"
+                    >
+                      <div class="flex flex-col">
+                        <span class="font-medium">{{ u.name }}</span>
+                        <span class="text-sm text-muted-foreground">{{ u.nomor_registrasi }}</span>
+                        <span v-if="u.email" class="text-xs text-muted-foreground">{{ u.email }}</span>
+                        <span v-if="u.pangkat" class="text-xs text-muted-foreground">{{ u.pangkat }}</span>
+                      </div>
+                    </SelectItem>
+                    
+                    <!-- No results message -->
+                    <div v-if="filteredUsers.length === 0 && searchQuery" class="p-3 text-center text-sm text-muted-foreground">
+                      Tidak ada pengguna yang ditemukan
+                    </div>
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
