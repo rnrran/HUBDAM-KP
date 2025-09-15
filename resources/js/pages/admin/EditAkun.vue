@@ -98,7 +98,7 @@ const userSelectPlaceholder = computed(() => {
   
   const selectedUser = props.users?.find(u => String(u.id) === selectedUserId.value);
   if (selectedUser) {
-    return `${selectedUser.name} — ${selectedUser.email}`;
+    return `${selectedUser.name} — ${selectedUser.nomor_registrasi}`;
   }
   
   return 'Pilih Pengguna';
@@ -175,7 +175,7 @@ const displayedPhotoUrl = computed(() => {
               <SelectContent>
                 <SelectItem :value="null as any">Pilih Pengguna</SelectItem>
                 <SelectItem v-for="u in (props.users || [])" :key="u.id" :value="String(u.id)">
-                  {{ u.name }} — {{ u.email }}
+                  {{ u.name }} — {{ u.nomor_registrasi }}
                 </SelectItem>
               </SelectContent>
             </Select>

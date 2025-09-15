@@ -155,8 +155,8 @@ const getProfilePhotoUrl = () => {
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="nomor_registrasi">Nomor Registrasi</Label>
-                        <Input id="nomor_registrasi" class="mt-1 block w-full" v-model="form.nomor_registrasi" placeholder="Masukkan nomor registrasi" />
+                        <Label for="nomor_registrasi">Nomor Registrasi (NRP)</Label>
+                        <Input id="nomor_registrasi" class="mt-1 block w-full" v-model="form.nomor_registrasi" disabled placeholder="Masukkan nomor registrasi" />
                         <InputError class="mt-2" :message="form.errors.nomor_registrasi" />
                     </div>
 
