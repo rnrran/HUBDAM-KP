@@ -20,7 +20,7 @@ import {
 import InputError from '@/components/InputError.vue';
 import pangkatData from '@/data/pangkat.json';
 import type { BreadcrumbItem } from '@/types';
-import { Search, X } from 'lucide-vue-next';
+import { Search, X, Trash2 } from 'lucide-vue-next';
 
 interface UserOption {
   id: number;
@@ -65,6 +65,7 @@ onMounted(() => {
   }
 });
 const showConfirmModal = ref(false);
+const showDeleteModal = ref(false);
 const showImageCropper = ref(false);
 const selectedImageFile = ref<File | null>(null);
 const imagePreviewUrl = ref<string>('');
@@ -146,6 +147,27 @@ const handleConfirm = () => {
       error('Gagal!', 'Tidak dapat menyimpan perubahan.');
     },
   });
+};
+
+const handleDelete = () => {
+  if (!selectedUserId.value) return;
+  showDeleteModal.value = false;
+  
+  // Use Inertia delete method
+  router.delete(route('admin.users.destroy', { user: selectedUserId.value }), {
+    onSuccess: () => {
+      success('Berhasil!', 'Akun pengguna berhasil dihapus.');
+      selectedUserId.value = null;
+      form.reset();
+    },
+    onError: () => {
+      error('Gagal!', 'Tidak dapat menghapus akun pengguna.');
+    },
+  });
+};
+
+const handleDeleteCancel = () => {
+  showDeleteModal.value = false;
 };
 
 const handleFileChange = (event: Event) => {
@@ -231,9 +253,8 @@ const displayedPhotoUrl = computed(() => {
                       class="cursor-pointer"
                     >
                       <div class="flex flex-col">
-                        <span class="font-medium">{{ u.name }}</span>
-                        <span class="text-sm text-muted-foreground">{{ u.nomor_registrasi }}</span>
-                        <span v-if="u.email" class="text-xs text-muted-foreground">{{ u.email }}</span>
+                        <span class="font-medium">{{ u.name }}{{ u.nomor_registrasi ? ` - ${u.nomor_registrasi}` : '' }}</span>
+                        <span v-if="u.email" class="text-sm text-muted-foreground">{{ u.email }}</span>
                         <span v-if="u.pangkat" class="text-xs text-muted-foreground">{{ u.pangkat }}</span>
                       </div>
                     </SelectItem>
@@ -329,7 +350,16 @@ const displayedPhotoUrl = computed(() => {
             <InputError :message="form.errors.profile_photo" />
           </div>
 
-          <div class="flex justify-end">
+          <div class="flex justify-between">
+            <Button 
+              variant="destructive" 
+              @click="showDeleteModal = true"
+              :disabled="!selectedUserId"
+              class="flex items-center space-x-2"
+            >
+              <Trash2 class="h-4 w-4" />
+              <span>Hapus Akun</span>
+            </Button>
             <Button :disabled="!canSubmit" @click="showConfirmModal = true">Simpan Perubahan</Button>
           </div>
         </CardContent>
@@ -345,6 +375,17 @@ const displayedPhotoUrl = computed(() => {
       :loading="form.processing"
       @confirm="handleConfirm"
       @cancel="() => (showConfirmModal = false)"
+    />
+
+    <ConfirmationModal
+      v-model:open="showDeleteModal"
+      title="Konfirmasi Hapus Akun"
+      :description="`Apakah Anda yakin ingin menghapus akun ${props.selectedUser?.name}? Tindakan ini tidak dapat dibatalkan.`"
+      confirm-text="Hapus Akun"
+      cancel-text="Batal"
+      confirm-variant="destructive"
+      @confirm="handleDelete"
+      @cancel="handleDeleteCancel"
     />
 
     <NotificationContainer />

@@ -12,6 +12,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('/users/edit', [UserManagementController::class, 'editIndex'])->name('users.edit.index');
     Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('users.edit');
     Route::post('/users/{user}', [UserManagementController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [UserManagementController::class, 'destroy'])->name('users.destroy');
     Route::get('/users/{user}', [UserManagementController::class, 'show'])->name('users.show');
     
     // Payroll Management Routes

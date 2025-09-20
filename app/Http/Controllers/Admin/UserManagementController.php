@@ -163,6 +163,23 @@ class UserManagementController extends Controller
         return response()->json($user);
     }
 
+    /**
+     * Remove the specified user from storage
+     */
+    public function destroy(User $user)
+    {
+        // Delete profile photo if exists
+        if ($user->profile_photo) {
+            $photoPath = storage_path('app/public/' . $user->profile_photo);
+            if (file_exists($photoPath)) {
+                unlink($photoPath);
+            }
+        }
+
+        $user->delete();
+
+        return redirect()->route('admin.users.edit.index');
+    }
 
     /**
      * Get pangkat options
